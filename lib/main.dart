@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:medicall_registration_sunmi/screens/configuration_screen.dart';
 import 'package:provider/provider.dart';
-import 'package:scan_sunmi/screens/configuration_screen.dart';
 
 import 'controller/configuration_page_controller.dart';
 import 'controller/main_controller.dart';
