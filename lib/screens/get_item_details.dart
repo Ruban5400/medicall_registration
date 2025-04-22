@@ -16,6 +16,22 @@ class GetItemDetails extends StatefulWidget {
 }
 
 class _GetItemDetailsState extends State<GetItemDetails> {
+  final FocusNode _focusNode = FocusNode();
+  @override
+  void initState() {
+    super.initState();
+    // Request focus after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose(); // Don't forget to dispose!
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -28,7 +44,10 @@ class _GetItemDetailsState extends State<GetItemDetails> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 CustomTextFieldDesign(
-                    label: 'Enter code', controller: value.getItemController),
+                  label: 'Enter code',
+                  controller: value.getItemController,
+                  focusNode: _focusNode,
+                ),
                 SizedBox(
                   height: 10,
                 ),
@@ -38,6 +57,12 @@ class _GetItemDetailsState extends State<GetItemDetails> {
                       await value.getDetailsMethod();
                       setState(() {});
                     }),
+                ButtonWidget(
+                    text: "Print",
+                    onClicked: () async {
+                      Sunmi printer = Sunmi();
+                      printer.printReceipt();
+                    }),
               ],
             ),
           );
@@ -45,24 +70,12 @@ class _GetItemDetailsState extends State<GetItemDetails> {
       ),
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(left: 36.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            FloatingActionButton(
-              child: const Icon(Icons.print),
-              onPressed: () async {
-                Sunmi printer = Sunmi();
-                printer.printReceipt();
-              },
-            ),
-            FloatingActionButton(
-              child: const Icon(Icons.qr_code_scanner),
-              onPressed: () async {
-                Provider.of<MainController>(context, listen: false)
-                    .scannBarCode();
-              },
-            ),
-          ],
+        child:FloatingActionButton(
+          child: const Icon(Icons.qr_code_scanner),
+          onPressed: () async {
+            Provider.of<MainController>(context, listen: false)
+                .scannBarCode();
+          },
         ),
       ),
     );
