@@ -15,6 +15,9 @@ class ConfigurationPageController extends ChangeNotifier {
   TextEditingController password = TextEditingController();
 
   TextEditingController ipAddress = TextEditingController();
+  String printerType = "Sunmi";
+  double paperHeight = 0;
+  double paperWidth = 0;
   bool enableTextField = true;
 
   configurePageInitialization() async {
@@ -52,5 +55,12 @@ class ConfigurationPageController extends ChangeNotifier {
     await HelperServices.saveServerData(
         StringConstants.userName, userName.text);
     await HelperServices.setConfiguration(true);
+  }
+
+  void setConfiguration(String type, double height, double width) {
+    printerType = type;
+    paperHeight = height;
+    paperWidth = width;
+    notifyListeners();
   }
 }

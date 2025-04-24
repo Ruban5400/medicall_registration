@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../controller/configuration_page_controller.dart';
 import '../controller/main_controller.dart';
-import '../utils/string_constants.dart';
 import '../utils/sunmi_helper_class.dart';
 import '../utils/widgets/button_widget.dart';
-
-import '../models/bar_code_item_models.dart';
 import '../utils/widgets/custom_text_field_design.dart';
 
 class GetItemDetails extends StatefulWidget {
@@ -20,7 +18,6 @@ class _GetItemDetailsState extends State<GetItemDetails> {
   @override
   void initState() {
     super.initState();
-    // Request focus after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
     });
@@ -28,12 +25,13 @@ class _GetItemDetailsState extends State<GetItemDetails> {
 
   @override
   void dispose() {
-    _focusNode.dispose(); // Don't forget to dispose!
+    _focusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final config = Provider.of<ConfigurationPageController>(context);
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       body: Consumer<MainController>(
@@ -61,23 +59,25 @@ class _GetItemDetailsState extends State<GetItemDetails> {
                     text: "Print",
                     onClicked: () async {
                       Sunmi printer = Sunmi();
-                      printer.printReceipt();
+                      printer.printReceipt(config.paperWidth, config.paperHeight);
                     }),
               ],
             ),
           );
         },
       ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(left: 36.0),
-        child:FloatingActionButton(
-          child: const Icon(Icons.qr_code_scanner),
-          onPressed: () async {
-            Provider.of<MainController>(context, listen: false)
-                .scannBarCode();
-          },
-        ),
-      ),
+      floatingActionButton: config.printerType == 'Bluetooth'
+          ? Padding(
+              padding: const EdgeInsets.only(left: 36.0),
+              child: FloatingActionButton(
+                child: const Icon(Icons.qr_code_scanner),
+                onPressed: () async {
+                  Provider.of<MainController>(context, listen: false)
+                      .scannBarCode();
+                },
+              ),
+            )
+          : null,
     );
   }
 }

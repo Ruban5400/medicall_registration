@@ -1,135 +1,116 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controller/configuration_page_controller.dart';
-import '../controller/helper_services.dart';
-import '../screens/get_item_details.dart';
-import '../utils/widgets/button_widget.dart';
+import 'home_page.dart';
 
-import '../utils/widgets/custom_text_field_design.dart';
+class PrinterConfigurationScreen extends StatefulWidget {
+  const PrinterConfigurationScreen({super.key});
 
-final List<Map<String, dynamic>> gridItems = [
-  {'image': 'assets/images/spot.png', 'label': 'Spot Registration'},
-  {'image': 'assets/images/online.png', 'label': 'Online Registration'},
-  {'image': 'assets/images/whatsapp.png', 'label': 'Whatsapp Registration'},
-  {'image': 'assets/images/delegate.png', 'label': 'Online Delegates'},
-];
+  @override
+  State<PrinterConfigurationScreen> createState() =>
+      _PrinterConfigurationScreenState();
+}
 
-class ConfigurationScreen extends StatelessWidget {
-  const ConfigurationScreen({super.key});
+class _PrinterConfigurationScreenState
+    extends State<PrinterConfigurationScreen> {
+  String? selectedPrinter;
+  final TextEditingController heightController = TextEditingController();
+  final TextEditingController widthController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    Provider.of<ConfigurationPageController>(context, listen: false)
-        .configurePageInitialization();
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      body: Center(
-        child: SingleChildScrollView(
-          child: Consumer<ConfigurationPageController>(
-            builder: (BuildContext context, ConfigurationPageController value,
-                Widget? child) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    height: 100,
-                    child: Image.asset('assets/images/Logo.png'),
-                  ),
-                  const Text(
-                    "Registration",
-                    style: TextStyle(
-                        color: Colors.indigo,
-                        fontSize: 25,
-                        fontWeight: FontWeight.bold,
-                        fontStyle: FontStyle.italic),
-                  ),
-                  // CustomTextFieldDesign(
-                  //   enable: value.enableTextField,
-                  //   label: 'Server name',
-                  //   hint: '192.168.100.75',
-                  //   controller: value.serverNameController,
-                  // ),
-                  GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    children: List.generate(gridItems.length, (index) {
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const GetItemDetails(),
-                              ));
-                        },
-                        child: Card(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Image.asset(
-                                  gridItems[index]['image']!,
-                                  height: 50,
-                                  width: 50,
-                                  fit: BoxFit.contain,
-                                ),
-                                SizedBox(height: 10),
-                                Text(
-                                  gridItems[index]['label'],
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                      color: Colors.black, fontSize: 16),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                  // Row(
-                  //   mainAxisAlignment: MainAxisAlignment.center,
-                  //   children: [
-                  //     ButtonWidget(
-                  //       text: "Configure",
-                  //       onClicked: () async {
-                  //         Provider.of<ConfigurationPageController>(context,
-                  //                 listen: false)
-                  //             .saveConfiguration();
-                  //         if (!context.mounted) return;
-                  //         Navigator.push(
-                  //             context,
-                  //             MaterialPageRoute(
-                  //               builder: (context) => const GetItemDetails(),
-                  //             ));
-                  //       },
-                  //     ),
-                  //     SizedBox(
-                  //       width: 20,
-                  //     ),
-                  //     ButtonWidget(
-                  //       text: "Reset",
-                  //       onClicked: () async {
-                  //         await HelperServices.setConfiguration(false);
-                  //         if (!context.mounted) return;
-                  //         Provider.of<ConfigurationPageController>(context,
-                  //                 listen: false)
-                  //             .configurePageInitialization();
-                  //       },
-                  //     ),
-                  //   ],
-                  // )
-                ],
-              );
-            },
-          ),
+      appBar: AppBar(
+        title: const Text(
+          "Printer Configuration",
+          style: TextStyle(
+              color: Colors.indigo,
+              fontSize: 25,
+              fontWeight: FontWeight.bold,
+              fontStyle: FontStyle.italic),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.grey.shade50,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(15),
+        child: Column(
+          children: [
+            Card(
+              child: Container(
+                padding: EdgeInsets.only(top: 15, left: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Select Printer Type",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    RadioListTile<String>(
+                      value: "Sunmi",
+                      groupValue: selectedPrinter,
+                      title: const Text("Sunmi Printer"),
+                      onChanged: (val) {
+                        setState(() {
+                          selectedPrinter = val;
+                          heightController.text = '68';
+                          widthController.text = '58';
+                        });
+                      },
+                    ),
+                    RadioListTile<String>(
+                      value: "Bluetooth",
+                      groupValue: selectedPrinter,
+                      title: const Text("Bluetooth Printer"),
+                      onChanged: (val) => setState(() => selectedPrinter = val),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: heightController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                  labelText: "Paper Height (mm)", border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 15),
+            TextField(
+              controller: widthController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                  labelText: "Paper Width (mm)", border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                if (selectedPrinter != null &&
+                    heightController.text.isNotEmpty &&
+                    widthController.text.isNotEmpty) {
+                  // Save config to controller or preferences if needed
+                  Provider.of<ConfigurationPageController>(context,
+                          listen: false)
+                      .setConfiguration(
+                    selectedPrinter!,
+                    double.tryParse(heightController.text) ?? 0,
+                    double.tryParse(widthController.text) ?? 0,
+                  );
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const HomeScreen()),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Please fill all the fields")),
+                  );
+                }
+              },
+              child: const Text("Continue"),
+            )
+          ],
         ),
       ),
     );
