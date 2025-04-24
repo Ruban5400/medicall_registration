@@ -1,93 +1,116 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controller/configuration_page_controller.dart';
-import '../controller/helper_services.dart';
-import '../screens/get_item_details.dart';
-import '../utils/widgets/button_widget.dart';
+import 'home_page.dart';
 
-import '../utils/widgets/custom_text_field_design.dart';
+class PrinterConfigurationScreen extends StatefulWidget {
+  const PrinterConfigurationScreen({super.key});
 
-class ConfigurationScreen extends StatelessWidget {
-  const ConfigurationScreen({super.key});
+  @override
+  State<PrinterConfigurationScreen> createState() =>
+      _PrinterConfigurationScreenState();
+}
+
+class _PrinterConfigurationScreenState
+    extends State<PrinterConfigurationScreen> {
+  String? selectedPrinter;
+  final TextEditingController heightController = TextEditingController();
+  final TextEditingController widthController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    Provider.of<ConfigurationPageController>(context,listen: false).configurePageInitialization();
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          child: Consumer<ConfigurationPageController>(builder: (BuildContext context, ConfigurationPageController value, Widget? child) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Text(
-                  "Database Config.",
-                  style: TextStyle(
-                      color: Colors.indigo,
-                      fontSize: 25,
-                      fontWeight: FontWeight.bold,
-                      fontStyle: FontStyle.italic),
-                ),
-                CustomTextFieldDesign(
-                  enable: value.enableTextField,
-                  label: 'Server name',
-                  hint: '192.168.100.75',
-                  controller: value.serverNameController,
-                ),
-                CustomTextFieldDesign(
-                  enable: value.enableTextField,
-                  label: 'Database Name',
-                  hint: 'TechSysDB',
-                  controller: value.dataBaseNameController,
-                ),
-                CustomTextFieldDesign(
-                  enable: value.enableTextField,
-                  label: 'Table Name',
-                  hint: 'Products',
-                  controller:value. tableName,
-                ),
-                CustomTextFieldDesign(
-                  label: 'Username',
-                  hint: 'root',
-                  controller:value. userName,
-                ),
-                CustomTextFieldDesign(
-                  label: 'password',
-                  hint: '12345678',
-                  controller:value. password,
-                ),
-                CustomTextFieldDesign(
-                  label: 'IP Address',
-                  hint: '192.168.100.10',
-                  controller:value. ipAddress,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+      backgroundColor: Colors.grey.shade50,
+      appBar: AppBar(
+        title: const Text(
+          "Printer Configuration",
+          style: TextStyle(
+              color: Colors.indigo,
+              fontSize: 25,
+              fontWeight: FontWeight.bold,
+              fontStyle: FontStyle.italic),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.grey.shade50,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(15),
+        child: Column(
+          children: [
+            Card(
+              child: Container(
+                padding: EdgeInsets.only(top: 15, left: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ButtonWidget(
-                      text: "Configure",
-                      onClicked: () async {
-Provider.of<ConfigurationPageController>(context,listen: false).saveConfiguration();
-                        if (!context.mounted) return;
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const GetItemDetails(),
-                            ));
-                      },
-                    ),SizedBox(width: 20,),ButtonWidget(
-                      text: "Reset",
-                      onClicked: () async {
-                        await HelperServices.setConfiguration(false);
-                        if(!context.mounted) return;
-                        Provider.of<ConfigurationPageController>(context,listen: false).configurePageInitialization();
+                    const Text(
+                      "Select Printer Type",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    RadioListTile<String>(
+                      value: "Sunmi",
+                      groupValue: selectedPrinter,
+                      title: const Text("Sunmi Printer"),
+                      onChanged: (val) {
+                        setState(() {
+                          selectedPrinter = val;
+                          heightController.text = '68';
+                          widthController.text = '58';
+                        });
                       },
                     ),
+                    RadioListTile<String>(
+                      value: "Bluetooth",
+                      groupValue: selectedPrinter,
+                      title: const Text("Bluetooth Printer"),
+                      onChanged: (val) => setState(() => selectedPrinter = val),
+                    ),
                   ],
-                )
-              ],
-            );
-          },),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: heightController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                  labelText: "Paper Height (mm)", border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 15),
+            TextField(
+              controller: widthController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                  labelText: "Paper Width (mm)", border: OutlineInputBorder()),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                if (selectedPrinter != null &&
+                    heightController.text.isNotEmpty &&
+                    widthController.text.isNotEmpty) {
+                  // Save config to controller or preferences if needed
+                  Provider.of<ConfigurationPageController>(context,
+                          listen: false)
+                      .setConfiguration(
+                    selectedPrinter!,
+                    double.tryParse(heightController.text) ?? 0,
+                    double.tryParse(widthController.text) ?? 0,
+                  );
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const HomeScreen()),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Please fill all the fields")),
+                  );
+                }
+              },
+              child: const Text("Continue"),
+            )
+          ],
         ),
       ),
     );

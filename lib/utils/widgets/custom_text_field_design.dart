@@ -1,19 +1,16 @@
 import 'package:flutter/material.dart';
 
 class CustomTextFieldDesign extends StatelessWidget {
-  const CustomTextFieldDesign(
-      {super.key,
-      required this.label,
-      this.hint = "",
-      required this.controller,
-      this.obscure = false,
-      this.enable= true});
-
   final String label;
-  final String hint;
   final TextEditingController controller;
-  final bool obscure;
-  final bool enable;
+  final FocusNode? focusNode;
+
+  const CustomTextFieldDesign({
+    super.key,
+    required this.label,
+    required this.controller,
+    this.focusNode,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -31,17 +28,12 @@ class CustomTextFieldDesign extends StatelessWidget {
           SizedBox(
             width: MediaQuery.sizeOf(context).width * .5,
             child: TextField(
-              enabled: enable,
-              obscureText: obscure,
-              obscuringCharacter: "*",
+              controller: controller,
+              focusNode: focusNode,
               decoration: InputDecoration(
                 labelText: label,
-                hintText: hint,
-                border: const OutlineInputBorder(
-                  borderSide: BorderSide(width: 5),
-                ),
+                border: OutlineInputBorder(),
               ),
-              controller: controller,
             ),
           )
         ],
@@ -49,3 +41,4 @@ class CustomTextFieldDesign extends StatelessWidget {
     );
   }
 }
+

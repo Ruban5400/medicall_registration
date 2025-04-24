@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../controller/configuration_page_controller.dart';
 import '../controller/main_controller.dart';
-import '../utils/string_constants.dart';
+import '../utils/sunmi_helper_class.dart';
 import '../utils/widgets/button_widget.dart';
-
-import '../models/bar_code_item_models.dart';
 import '../utils/widgets/custom_text_field_design.dart';
 
 class GetItemDetails extends StatefulWidget {
@@ -15,9 +14,26 @@ class GetItemDetails extends StatefulWidget {
 }
 
 class _GetItemDetailsState extends State<GetItemDetails> {
+  final FocusNode _focusNode = FocusNode();
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final config = Provider.of<ConfigurationPageController>(context);
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       body: Consumer<MainController>(
         builder: (BuildContext context, MainController value, Widget? child) {
           return Form(
@@ -26,8 +42,10 @@ class _GetItemDetailsState extends State<GetItemDetails> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 CustomTextFieldDesign(
-                    label: 'Item Code eneter',
-                    controller: value.getItemController),
+                  label: 'Enter code',
+                  controller: value.getItemController,
+                  focusNode: _focusNode,
+                ),
                 SizedBox(
                   height: 10,
                 ),
@@ -37,85 +55,29 @@ class _GetItemDetailsState extends State<GetItemDetails> {
                       await value.getDetailsMethod();
                       setState(() {});
                     }),
-                SizedBox(
-                  height: 20,
-                ),
-                FutureBuilder(
-                  future: value.getDetailsMethod(),
-                  builder: (BuildContext context,
-                      AsyncSnapshot<BarCodeData?> snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Text("Details will be displayed here");
-                    }
-                    if (snapshot.hasData) {
-                      var product = snapshot.data!.product;
-                      return Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            children: [
-                              Container(
-                                  alignment: Alignment.center,
-                                  height:
-                                      MediaQuery.sizeOf(context).height * .1,
-                                  width: MediaQuery.sizeOf(context).width * .75,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(20),
-                                    image: DecorationImage(
-                                        image: AssetImage(
-                                            StringConstants.yellowBackground),
-                                        fit: BoxFit.fill,
-                                        opacity: .7),
-                                  ),
-                                  child: ListTile(
-                                    title: Text("${product.itemDescription}"),
-                                    subtitle: Text(product.itemCode),
-                                    trailing: Column(
-                                      children: [
-                                        Text("Retail Price"),
-                                        Text(
-                                          "\$${product.salesPrice}",
-                                          style: TextStyle(
-                                              fontSize: 25,
-                                              fontWeight: FontWeight.bold),
-                                        )
-                                      ],
-                                    ),
-                                  )),
-                              SizedBox(
-                                height: 20,
-                              ),
-                              Image(
-                                image: NetworkImage(
-                                    "${value.server + product.barcCode}"),
-                                height: 80,
-                                width: MediaQuery.sizeOf(context).width * .7,
-                                fit: BoxFit.fill,
-                              ),
-                              SizedBox(
-                                height: 5,
-                              ),
-                              Text("${product.unitCode}")
-                            ],
-                          ),
-                        ),
-                      );
-                    } else {
-                      return const Text("No data");
-                    }
-                  },
-                )
+                ButtonWidget(
+                    text: "Print",
+                    onClicked: () async {
+                      Sunmi printer = Sunmi();
+                      printer.printReceipt(config.paperWidth, config.paperHeight);
+                    }),
               ],
             ),
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.qr_code_scanner),
-        onPressed: () async {
-          Provider.of<MainController>(context,listen: false).scannBarCode();
-        },
-      ),
+      floatingActionButton: config.printerType == 'Bluetooth'
+          ? Padding(
+              padding: const EdgeInsets.only(left: 36.0),
+              child: FloatingActionButton(
+                child: const Icon(Icons.qr_code_scanner),
+                onPressed: () async {
+                  Provider.of<MainController>(context, listen: false)
+                      .scannBarCode();
+                },
+              ),
+            )
+          : null,
     );
   }
 }

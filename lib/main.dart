@@ -24,7 +24,8 @@ class MyApp extends StatelessWidget {
         ),
       ],
       child: const MaterialApp(
-        home: ConfigurationScreen(),
+        home: PrinterConfigurationScreen(),
+        debugShowCheckedModeBanner: false,
       ),
     );
   }

@@ -7,7 +7,7 @@
         tools:targetApi="eclair" />
     <uses-permission android:name="android.permission.CAMERA"/>
     <application
-        android:label="scan_sunmi"
+        android:label="Medicall Registration"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
