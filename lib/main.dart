@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:medicall_registration_sunmi/screens/configuration_screen.dart';
+import 'package:medicall_registration_sunmi/screens/home_page.dart';
 import 'package:medicall_registration_sunmi/utils/background_data_fetcher.dart';
 import 'package:provider/provider.dart';
 
@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ApiService()),
       ],
       child: const MaterialApp(
-        home: PrinterConfigurationScreen(),
+        home: HomeScreen(),
         debugShowCheckedModeBanner: false,
       ),
     );

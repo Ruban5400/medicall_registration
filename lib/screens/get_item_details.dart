@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:medicall_registration_sunmi/screens/result_page.dart';
 import 'package:provider/provider.dart';
 import '../controller/api_service.dart';
 import '../controller/configuration_page_controller.dart';
@@ -121,42 +122,119 @@ class _GetItemDetailsState extends State<GetItemDetails> {
       body: Consumer<MainController>(
         builder: (BuildContext context, MainController value, Widget? child) {
           return Form(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                CustomTextFieldDesign(
-                  label: 'Enter code',
-                  controller: value.getItemController,
-                  focusNode: _focusNode,
-                ),
-                SizedBox(
-                  height: 10,
-                ),
-                ButtonWidget(
-                    text: "Get Details",
-                    onClicked: () async {
-                      String mobile = value.getItemController.text.trim();
-                      _findVisitorByMobile(mobile);
-                      setState(() {});
-                    }),
-                if (printSelectedVisitor != null)
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 100.0),
+              child: Column(
+                mainAxisAlignment: selectedVisitor == null
+                    ? MainAxisAlignment.center
+                    : MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    "Visitor Data",
+                    style: TextStyle(
+                        color: Colors.indigo,
+                        fontSize: 25,
+                        fontWeight: FontWeight.bold,
+                        fontStyle: FontStyle.italic),
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  CustomTextFieldDesign(
+                    label: 'Enter code',
+                    controller: value.getItemController,
+                    focusNode: _focusNode,
+                  ),
+                  SizedBox(
+                    height: 10,
+                  ),
                   ButtonWidget(
-                      text: "Print",
+                      text: "Get Details",
                       onClicked: () async {
-                        Sunmi printer = Sunmi(printSelectedVisitor: printSelectedVisitor);
-                        printer.printReceipt(
-                            config.paperWidth, config.paperHeight);
-                        printSelectedVisitor!['is_visited'] = true;
-                        final success = await ApiService.sendVisitorData(printSelectedVisitor!,selectedVisitor!['mobile_number']);
-                        if (success) {
-                          print("5400 0-=-=-=>>> $success");
-                        } else {
-                          // Show error or handle failure
-                          print("Failed to send data to server");
-                        }
+                        String mobile = value.getItemController.text.trim();
+                        _findVisitorByMobile(mobile);
+                        setState(() {});
                       }),
-              ],
+                  SizedBox(
+                    height: 10,
+                  ),
+                  if (printSelectedVisitor != null)
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 100),
+                      child: Card(
+                        elevation: 3,
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 16, horizontal: 20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: selectedVisitor!.entries.map((entry) {
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 6),
+                                child: RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text:
+                                            "${entry.key.toString().replaceAll('_', ' ').toUpperCase()}: ",
+                                        style: const TextStyle(
+                                          color: Colors.black54,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: entry.value?.toString() ?? '',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black87,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (printSelectedVisitor != null)
+                    ButtonWidget(
+                        text: "Print",
+                        onClicked: () async {
+                          setState(() {
+                            value.getItemController.clear();
+                          });
+                          Sunmi printer =
+                              Sunmi(printSelectedVisitor: printSelectedVisitor);
+                          printer.printReceipt(
+                              config.paperWidth, config.paperHeight);
+                          printSelectedVisitor!['is_visited'] = true;
+                          final success = await ApiService.sendVisitorData(
+                              printSelectedVisitor!,
+                              selectedVisitor!['mobile_number']);
+                          if (success) {
+                            print("5400 0-=-=-=>>> $success");
+                          } else {
+                            // Show error or handle failure
+                            print("Failed to send data to server");
+                          }
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(builder: (context) => NextPage()), // replace with your destination widget
+                                (Route<dynamic> route) => false,
+                          );
+                        }),
+                ],
+              ),
             ),
           );
         },
