@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 
 import '../utils/widgets/button_widget.dart';
 
@@ -52,12 +51,13 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> {
 
   Future<void> scanBarcode() async {
     try {
-      final barcode = await FlutterBarcodeScanner.scanBarcode(
-        '#ff6666',
-        'Cancel',
-        true,
-        ScanMode.DEFAULT,
-      );
+      final barcode = '5400';
+      // await FlutterBarcodeScanner.scanBarcode(
+      //   '#ff6666',
+      //   'Cancel',
+      //   true,
+      //   ScanMode.DEFAULT,
+      // );
 
 
 

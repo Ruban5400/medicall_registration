@@ -4,7 +4,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import '../controller/api_services.dart';
@@ -12,13 +11,13 @@ import '../controller/helper_services.dart';
 import '../utils/string_constants.dart';
 
 import '../models/bar_code_item_models.dart';
+import '../utils/widgets/qr_scanner.dart';
 
 class MainController extends ChangeNotifier {
   TextEditingController getItemController = TextEditingController();
 
   String barcode = "";
   String server = "";
-
 
   TextEditingController itemCOde = TextEditingController();
 
@@ -104,27 +103,38 @@ class MainController extends ChangeNotifier {
     );
   }
 
-  scannBarCode() async {
+  scannBarCode(BuildContext context) async {
     try {
-      final barcode = await FlutterBarcodeScanner.scanBarcode(
-        '#ff6666',
-        'Cancel',
-        true,
-        ScanMode.DEFAULT,
-      );
-      getItemController.text = barcode.toString();
-      server = await HelperServices.getServerData(StringConstants.server);
-      var dataBase = await HelperServices.getServerData(StringConstants.dataBase);
-      var userName = await HelperServices.getServerData(StringConstants.userName);
-      print("==========1${userName}");
+      // final barcode = await FlutterBarcodeScanner.scanBarcode(
+      //   '#ff6666',
+      //   'Cancel',
+      //   true,
+      //   ScanMode.DEFAULT,
+      // );
+      await Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) =>
+                  QRScannerPage(onScanComplete: (String barcodeScanRes) async {
+                    if (barcodeScanRes.isNotEmpty) {
+                      getItemController.text = barcodeScanRes.toString();
+                      // server = await HelperServices.getServerData(
+                      //     StringConstants.server);
+                      // var dataBase = await HelperServices.getServerData(
+                      //     StringConstants.dataBase);
+                      // var userName = await HelperServices.getServerData(
+                      //     StringConstants.userName);
+                      print("5400==========1${getItemController.text}");
 
-      var response = await ApiServices.getBarCodeDetails(
-          userName, dataBase, server,barcode);
-      if(response!= null){
-        return response;
-      }else{
-        return null;
-      }
+                      // var response = await ApiServices.getBarCodeDetails(
+                      //     userName, dataBase, server, barcode);
+                      // if (response != null) {
+                      //   return response;
+                      // } else {
+                      //   return null;
+                      // }
+                    }
+                  })));
 
       // barcode scanned action
     } on PlatformException {
@@ -132,17 +142,17 @@ class MainController extends ChangeNotifier {
     }
   }
 
- Future<BarCodeData?> getDetailsMethod() async {
+  Future<BarCodeData?> getDetailsMethod() async {
     server = await HelperServices.getServerData(StringConstants.server);
     var dataBase = await HelperServices.getServerData(StringConstants.dataBase);
     var userName = await HelperServices.getServerData(StringConstants.userName);
-print("==========1${userName}");
+    print("==========1${userName}");
 
     var response = await ApiServices.getBarCodeDetails(
         userName, dataBase, server, getItemController.text);
-    if(response!= null){
+    if (response != null) {
       return response;
-    }else{
+    } else {
       return null;
     }
   }

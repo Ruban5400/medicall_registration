@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controller/configuration_page_controller.dart';
-import 'home_page.dart';
+import '../utils/widgets/load_screen.dart';
 
 class PrinterConfigurationScreen extends StatefulWidget {
   const PrinterConfigurationScreen({super.key});
@@ -90,17 +90,17 @@ class _PrinterConfigurationScreenState
                 if (selectedPrinter != null &&
                     heightController.text.isNotEmpty &&
                     widthController.text.isNotEmpty) {
-                  // Save config to controller or preferences if needed
-                  Provider.of<ConfigurationPageController>(context,
-                          listen: false)
+                  Provider.of<ConfigurationPageController>(context, listen: false)
                       .setConfiguration(
                     selectedPrinter!,
                     double.tryParse(heightController.text) ?? 0,
                     double.tryParse(widthController.text) ?? 0,
                   );
+
+                  // Navigate to loader+fetch screen
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (_) => const HomeScreen()),
+                    MaterialPageRoute(builder: (_) => const DataLoaderScreen()),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -110,6 +110,7 @@ class _PrinterConfigurationScreenState
               },
               child: const Text("Continue"),
             )
+
           ],
         ),
       ),
