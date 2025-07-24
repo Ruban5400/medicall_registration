@@ -146,6 +146,7 @@ class _GetItemDetailsState extends State<GetItemDetails> {
                     controller: value.getItemController,
                     focusNode: _focusNode,
                   ),
+                  Text('${value.getItemController.text}'),
                   SizedBox(
                     height: 10,
                   ),
