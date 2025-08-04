@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:medicall_registration_sunmi/screens/result_page.dart';
 import 'package:provider/provider.dart';
 import '../controller/api_service.dart';
 import '../controller/configuration_page_controller.dart';
@@ -112,6 +111,7 @@ class _GetItemDetailsState extends State<GetItemDetails> {
         }
       }
     }
+    setState(() {});
   }
 
   @override
@@ -146,17 +146,122 @@ class _GetItemDetailsState extends State<GetItemDetails> {
                     controller: value.getItemController,
                     focusNode: _focusNode,
                   ),
-                  Text('${value.getItemController.text}'),
                   SizedBox(
                     height: 10,
                   ),
-                  ButtonWidget(
-                      text: "Get Details",
-                      onClicked: () async {
-                        String mobile = value.getItemController.text.trim();
-                        _findVisitorByMobile(mobile);
-                        setState(() {});
-                      }),
+                  // Padding(
+                  //   padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                  //   child: Row(
+                  //     mainAxisAlignment: printSelectedVisitor != null
+                  //         ? MainAxisAlignment.spaceBetween
+                  //         : MainAxisAlignment.center,
+                  //     children: [
+                  //       ButtonWidget(
+                  //           text: "Get Details",
+                  //           onClicked: () async {
+                  //             String mobile = value.getItemController.text.trim();
+                  //             _findVisitorByMobile(mobile);
+                  //             setState(() {});
+                  //           }),
+                  //       if (printSelectedVisitor != null)
+                  //         ButtonWidget(
+                  //             text: "Print",
+                  //             onClicked: () async {
+                  //               setState(() {
+                  //                 value.getItemController.clear();
+                  //               });
+                  //               Sunmi printer = Sunmi(
+                  //                   printSelectedVisitor: printSelectedVisitor);
+                  //               printer.printReceipt(
+                  //                   config.paperWidth, config.paperHeight);
+                  //               printSelectedVisitor!['is_visited'] = true;
+                  //               final success = await ApiService.sendVisitorData(
+                  //                   printSelectedVisitor!,
+                  //                   selectedVisitor!['mobile_number']);
+                  //               if (success) {
+                  //               } else {
+                  //                 // Show error or handle failure
+                  //                 print("Failed to send data to server");
+                  //               }
+                  //               Provider.of<MainController>(context,
+                  //                       listen: false)
+                  //                   .scannBarCode(context);
+                  //               // Navigator.of(context).pushAndRemoveUntil(
+                  //               //   MaterialPageRoute(builder: (context) => NextPage()),
+                  //               //       (Route<dynamic> route) => false,
+                  //               // );
+                  //             }),
+                  //     ],
+                  //   ),
+                  // ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
+                    child: Row(
+                      children: [
+                        // Get Details Button
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.search,color: Colors.white,),
+                            label: const Text("Get Details",style: TextStyle(color: Colors.white),),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              backgroundColor: Colors.indigo,
+                            ),
+                            onPressed: () async {
+                              String mobile = value.getItemController.text.trim();
+                              _findVisitorByMobile(mobile);
+                              setState(() {});
+                            },
+                          ),
+                        ),
+
+                        // Add spacing only if print button is shown
+                        if (printSelectedVisitor != null) const SizedBox(width: 12),
+
+                        // Print Button
+                        if (printSelectedVisitor != null)
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              icon: const Icon(Icons.print,color: Colors.white),
+                              label: const Text("Print",style: TextStyle(color: Colors.white),),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                backgroundColor: Colors.green,
+                              ),
+                              onPressed: () async {
+                                setState(() {
+                                  value.getItemController.clear();
+                                });
+
+                                Sunmi printer = Sunmi(printSelectedVisitor: printSelectedVisitor);
+                                printer.printReceipt(config.paperWidth, config.paperHeight);
+
+                                printSelectedVisitor!['is_visited'] = true;
+
+                                final success = await ApiService.sendVisitorData(
+                                  printSelectedVisitor!,
+                                  selectedVisitor!['mobile_number'],
+                                );
+
+                                if (!success) {
+                                  print("Failed to send data to server");
+                                }
+
+                                Provider.of<MainController>(context, listen: false)
+                                    .scannBarCode(context);
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+
                   SizedBox(
                     height: 10,
                   ),
@@ -208,32 +313,6 @@ class _GetItemDetailsState extends State<GetItemDetails> {
                         ),
                       ),
                     ),
-                  if (printSelectedVisitor != null)
-                    ButtonWidget(
-                        text: "Print",
-                        onClicked: () async {
-                          setState(() {
-                            value.getItemController.clear();
-                          });
-                          Sunmi printer =
-                              Sunmi(printSelectedVisitor: printSelectedVisitor);
-                          printer.printReceipt(
-                              config.paperWidth, config.paperHeight);
-                          printSelectedVisitor!['is_visited'] = true;
-                          final success = await ApiService.sendVisitorData(
-                              printSelectedVisitor!,
-                              selectedVisitor!['mobile_number']);
-                          if (success) {
-                            print("5400 0-=-=-=>>> $success");
-                          } else {
-                            // Show error or handle failure
-                            print("Failed to send data to server");
-                          }
-                          Navigator.of(context).pushAndRemoveUntil(
-                            MaterialPageRoute(builder: (context) => NextPage()), // replace with your destination widget
-                                (Route<dynamic> route) => false,
-                          );
-                        }),
                 ],
               ),
             ),

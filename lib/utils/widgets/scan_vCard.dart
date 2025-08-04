@@ -1,8 +1,11 @@
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:flutter_beep_plus/flutter_beep_plus.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class VCardScanner extends StatefulWidget {
   final String hallNo;
@@ -22,6 +25,7 @@ class _VCardScannerState extends State<VCardScanner> {
   void initState() {
     super.initState();
     box.writeIfNull('leads', []);
+    _startNetworkListener();
   }
 
   Future<void> handleScan(String rawValue) async {
@@ -61,17 +65,62 @@ class _VCardScannerState extends State<VCardScanner> {
     );
   }
 
+  bool isConnected = false;
+
+  void _startNetworkListener() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+    isConnected = connectivityResult != ConnectivityResult.none;
+    if (isConnected) {
+      await uploadTodayLeadsToSupabase();
+    }
+  }
+
+  Future<void> uploadTodayLeadsToSupabase() async {
+    final today = DateTime.now();
+    final todayStr =
+        "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+
+    // ✅ Correct: Read from storage
+    final List<dynamic> scannedLeadsRaw = box.read('leads') ?? [];
+
+    // Ensure it's a List<Map<String, dynamic>>
+    final List<Map<String, dynamic>> scannedLeads =
+        scannedLeadsRaw.map((e) => Map<String, dynamic>.from(e)).toList();
+
+    final todayLeads =
+        scannedLeads.where((lead) => lead['date'] == todayStr).toList();
+
+    final filteredLeads = todayLeads
+        .map((lead) => {
+              'name': lead['name'],
+              'email': lead['email'],
+              'mobile_number': lead['mobile_number'],
+              'hall_no': lead['hall_no'],
+              'date': lead['date'],
+            })
+        .toList();
+
+    if (filteredLeads.isEmpty) {
+      print('ℹ️ No leads to upload for today.');
+      return;
+    }
+
+    final supabase = Supabase.instance.client;
+
+    try {
+      await supabase.from('medicall_visitor').insert(filteredLeads);
+      print('✅ Uploaded ${filteredLeads.length} leads to Supabase.');
+    } catch (e) {
+      print('❌ Error uploading leads: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<dynamic> scannedLeads = box.read('leads') ?? [];
-    // final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    //
-    // final todayCount = scannedLeads
-    //     .where((e) => e['date'] == today)
-    //     .length;
 
     Map<String, List<dynamic>> scannedLeadsByDate = {};
-
+    print('scannedLeads --- >>> $scannedLeads');
     for (var lead in scannedLeads) {
       final date = lead['date'] ?? 'Unknown';
       scannedLeadsByDate.putIfAbsent(date, () => []).add(lead);
@@ -95,60 +144,23 @@ class _VCardScannerState extends State<VCardScanner> {
         elevation: 1,
         iconTheme: const IconThemeData(color: Colors.indigo),
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 10),
-          Container(
-            padding: EdgeInsets.all(10),
-            color: Colors.indigo.shade50,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Hall No: ${widget.hallNo}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                  ),
-                ),
-                Text("📅 Scanned Counts by Date:",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                ...sortedDates.map((date) {
-                  final count = scannedLeadsByDate[date]!.length;
-                  final formattedDate = DateFormat('dd-MM-yyyy')
-                      .format(DateTime.parse(date));
-                  return Text("• $formattedDate: $count",
-                      style: TextStyle(fontSize: 15,fontWeight: FontWeight.bold));
-                }),
-                SizedBox(height: 10),
-                Text("📊 Total Scanned: ${scannedLeads.length}",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: MobileScanner(
-              controller: MobileScannerController(
-                facing: CameraFacing.back,
-                detectionSpeed: DetectionSpeed.noDuplicates,
-                detectionTimeoutMs: 500,
-              ),
-              onDetect: (barcodeCapture) {
-                final barcode = barcodeCapture.barcodes.first;
-                final raw = barcode.rawValue;
-                _flutterBeepPlusPlugin.playSysSound(
-                    AndroidSoundID.TONE_CDMA_ABBR_ALERT);
-                if (barcode.format == BarcodeFormat.qrCode &&
-                    raw != null &&
-                    raw.startsWith("BEGIN:VCARD")) {
-                  handleScan(raw);
-                }
-              },
-            ),
-          ),
-        ],
+      body: MobileScanner(
+        controller: MobileScannerController(
+          facing: CameraFacing.back,
+          detectionSpeed: DetectionSpeed.noDuplicates,
+          detectionTimeoutMs: 500,
+        ),
+        onDetect: (barcodeCapture) {
+          final barcode = barcodeCapture.barcodes.first;
+          final raw = barcode.rawValue;
+          _flutterBeepPlusPlugin
+              .playSysSound(AndroidSoundID.TONE_CDMA_ABBR_ALERT);
+          if (barcode.format == BarcodeFormat.qrCode &&
+              raw != null &&
+              raw.startsWith("BEGIN:VCARD")) {
+            handleScan(raw);
+          }
+        },
       ),
     );
   }
@@ -180,7 +192,6 @@ class _VCardScannerState extends State<VCardScanner> {
     return data;
   }
 }
-
 
 // code with count and without date
 // import 'package:flutter/material.dart';
@@ -342,4 +353,3 @@ class _VCardScannerState extends State<VCardScanner> {
 //     return data;
 //   }
 // }
-
