@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'dart:convert';
 
-import '../../screens/get_item_details.dart';
+import '../../controller/main_controller.dart';
+
 
 class DataLoaderScreen extends StatefulWidget {
   const DataLoaderScreen({super.key});
@@ -33,10 +35,13 @@ class _DataLoaderScreenState extends State<DataLoaderScreen> {
         debugPrint("✅ Data stored successfully in GetStorage");
 
         if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const GetItemDetails()),
-          );
+          // Navigator.pushReplacement(
+          //   context,
+          //   // MaterialPageRoute(builder: (_) => const GetItemDetails()),
+          //   MaterialPageRoute(builder: (_) => const WelcomePage()),
+          // );
+          Provider.of<MainController>(context, listen: false)
+              .scannBarCode(context);
         }
       } else {
         showError("Failed to fetch data. Status code: ${response.statusCode}");

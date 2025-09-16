@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import '../controller/api_services.dart';
 import '../controller/helper_services.dart';
+import '../screens/get_item_details.dart';
 import '../utils/string_constants.dart';
 
 import '../models/bar_code_item_models.dart';
@@ -103,7 +104,9 @@ class MainController extends ChangeNotifier {
     );
   }
 
-  scannBarCode(BuildContext context) async {
+  scannBarCode(
+    BuildContext context,
+  ) async {
     try {
       // final barcode = await FlutterBarcodeScanner.scanBarcode(
       //   '#ff6666',
@@ -124,8 +127,12 @@ class MainController extends ChangeNotifier {
                       //     StringConstants.dataBase);
                       // var userName = await HelperServices.getServerData(
                       //     StringConstants.userName);
-                      print("5400==========1${getItemController.text}");
-
+                      // await onScanCompleteAction(barcodeScanRes);
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const GetItemDetails()),
+                      );
                       // var response = await ApiServices.getBarCodeDetails(
                       //     userName, dataBase, server, barcode);
                       // if (response != null) {

@@ -4,8 +4,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:sunmi_printer_plus/enums.dart';
-import 'package:sunmi_printer_plus/sunmi_printer_plus.dart';
+import 'package:sunmi_printer_plus/core/enums/enums.dart';
+import 'package:sunmi_printer_plus/core/sunmi/sunmi_printer.dart';
+
 import './v_card.dart';
 
 class Sunmi {
@@ -20,7 +21,7 @@ class Sunmi {
   }
 
   Future<void> closePrinter() async {
-    await SunmiPrinter.unbindingPrinter();
+    await SunmiPrinter.bindingPrinter();
   }
 
   // Main method to call
