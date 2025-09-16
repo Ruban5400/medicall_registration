@@ -4,11 +4,16 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:sunmi_printer_plus/enums.dart';
-import 'package:sunmi_printer_plus/sunmi_printer_plus.dart';
+import 'package:sunmi_printer_plus/core/enums/enums.dart';
+import 'package:sunmi_printer_plus/core/sunmi/sunmi_printer.dart';
+
 import './v_card.dart';
 
 class Sunmi {
+  final Map<String, dynamic>? printSelectedVisitor;
+
+  Sunmi({required this.printSelectedVisitor});
+
   Future<void> initialize() async {
     await SunmiPrinter.bindingPrinter();
     await SunmiPrinter.initPrinter();
@@ -16,15 +21,16 @@ class Sunmi {
   }
 
   Future<void> closePrinter() async {
-    await SunmiPrinter.unbindingPrinter();
+    await SunmiPrinter.bindingPrinter();
   }
 
   // Main method to call
   Future<void> printReceipt(double paperWidthMm, double paperHeightMm) async {
     await printReceiptWithUserAndQR(
-      name: "Ruban",
-      role: "App Developer",
-      id: "BFX5400",
+      name: printSelectedVisitor?['name'] ?? ' ',
+      mobileNumber : printSelectedVisitor?['mobile_number'] ?? ' ',
+      email : printSelectedVisitor?['email'] ?? ' ',
+      role: '${printSelectedVisitor?['designation']} @ ${printSelectedVisitor?['company']}' ?? ' ',
       paperWidthMm: paperWidthMm,
       paperHeightMm: paperHeightMm,
     );
@@ -33,8 +39,9 @@ class Sunmi {
 
   Future<void> printReceiptWithUserAndQR({
     required String name,
+    required String mobileNumber,
+    required String email,
     required String role,
-    required String id,
     required double paperWidthMm,
     required double paperHeightMm,
   }) async {
@@ -42,8 +49,9 @@ class Sunmi {
 
     final image = await _generateFullReceiptImage(
       name: name,
+      mobileNumber:mobileNumber,
+      email:email,
       role: role,
-      id: id,
       paperWidthMm: paperWidthMm,
       paperHeightMm: paperHeightMm,
     );
@@ -55,8 +63,9 @@ class Sunmi {
 
   Future<Uint8List> _generateFullReceiptImage({
     required String name,
+    required String mobileNumber,
+    required String email,
     required String role,
-    required String id,
     required double paperWidthMm,
     required double paperHeightMm,
   }) async {
@@ -80,7 +89,7 @@ class Sunmi {
       fontWeight: FontWeight.w600,
     );
 
-    final lines = [name, role, id];
+    final lines = [name, mobileNumber, email,  role];
     double currentY = 10;
 
     for (final line in lines) {
@@ -98,13 +107,10 @@ class Sunmi {
     currentY += 20;
     final vCard = generateVCard(
         name: name,
-        email: 'ruban@bfxinfotech.com',
-        organization: 'Blue Fire Xperts',
-        role: role,
-        mobile_number: '8973882365',
-        address:
-            'BFX Infotech , OLIYAGAM,156,ANAND NAGARA 1ST STREET,K.K.NAGAR(PO, 1st Main Rd, LIC Colony, Ayyappa Nagar, K K Nagar, Tiruchirappalli, Tamil Nadu 620021.',
-        reg_id: id);
+        email: email,
+        organization: role,
+        mobile_number: mobileNumber,
+        );
     // Draw QR code
     final qrSize = (widthPx * 0.5).round(); // 50% of width
     final leftPadding = ((widthPx - qrSize) / 2).toDouble();
