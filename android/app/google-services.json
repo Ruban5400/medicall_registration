@@ -1,0 +1,127 @@
+{
+  "project_info": {
+    "project_number": "702417938707",
+    "firebase_url": "https://medicall-mobile-app.firebaseio.com",
+    "project_id": "medicall-mobile-app",
+    "storage_bucket": "medicall-mobile-app.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:702417938707:android:5eec21360f2184284c12e6",
+        "android_client_info": {
+          "package_name": "com.example.scan_sunmi"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "702417938707-o9gdudcec1j9a8vl4k85td4jdqr1hvm2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD7c-8Es-aZFEuF-aWYErgnfS0vNrM83hk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "702417938707-o9gdudcec1j9a8vl4k85td4jdqr1hvm2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:702417938707:android:05399144caaa82654c12e6",
+        "android_client_info": {
+          "package_name": "com.medicall.admin"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "702417938707-o9gdudcec1j9a8vl4k85td4jdqr1hvm2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD7c-8Es-aZFEuF-aWYErgnfS0vNrM83hk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "702417938707-o9gdudcec1j9a8vl4k85td4jdqr1hvm2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:702417938707:android:79cd86fd2edeeced4c12e6",
+        "android_client_info": {
+          "package_name": "com.medicall.exhibitor"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "702417938707-o9gdudcec1j9a8vl4k85td4jdqr1hvm2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD7c-8Es-aZFEuF-aWYErgnfS0vNrM83hk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "702417938707-o9gdudcec1j9a8vl4k85td4jdqr1hvm2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:702417938707:android:eedc7013ffdaba2d4c12e6",
+        "android_client_info": {
+          "package_name": "info.bfx.medicall"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "702417938707-o9gdudcec1j9a8vl4k85td4jdqr1hvm2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD7c-8Es-aZFEuF-aWYErgnfS0vNrM83hk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "702417938707-o9gdudcec1j9a8vl4k85td4jdqr1hvm2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

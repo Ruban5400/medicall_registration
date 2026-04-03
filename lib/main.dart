@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:medicall_registration_sunmi/screens/home_page.dart';
@@ -8,9 +9,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'controller/api_service.dart';
 import 'controller/configuration_page_controller.dart';
 import 'controller/main_controller.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   await GetStorage.init();
   await Supabase.initialize(
       url: "https://aipcsnbimoszrvicqwec.supabase.co",
