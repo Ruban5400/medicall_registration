@@ -56,18 +56,51 @@ class _DataLoaderScreenState extends State<DataLoaderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFFFFFDF8),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            CircularProgressIndicator(color: Colors.white),
-            SizedBox(height: 20),
-            Text(
-              "Please wait\nFetching global visitor data...",textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontSize: 16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-          ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: CircularProgressIndicator(
+                      color: Color(0xFFF1A922),
+                      strokeWidth: 3.5,
+                    ),
+                  ),
+                  SizedBox(height: 24),
+                  Text(
+                    "Preparing Visitor Database",
+                    style: TextStyle(
+                      color: Color(0xFF1E1E1E),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    "Please wait...",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFF666666),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

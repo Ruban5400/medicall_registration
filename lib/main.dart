@@ -29,9 +29,9 @@ void main() async {
 
   try {
     await Supabase.initialize(
-        url: "https://aipcsnbimoszrvicqwec.supabase.co",
+        url: "https://exwtyydfpbftnrkqntxb.supabase.co",
         anonKey:
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcGNzbmJpbW9zenJ2aWNxd2VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwOTc5ODIsImV4cCI6MjA2ODY3Mzk4Mn0.qAy6MdtZnCTAKz7cwrbOZBGjs2wYcnwkdMwk85Pw4Mk");
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4d3R5eWRmcGJmdG5ya3FudHhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1MjY3MjIsImV4cCI6MjEwMDEwMjcyMn0.iWyUaRfG7Fz2BLIvc4DeV2ceM3eymdJUyqcQGWj4-14");
   } catch (e) {
     debugPrint('Supabase init warning: $e');
   }
@@ -60,9 +60,81 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(create: (_) => ApiService()),
       ],
-      child: const MaterialApp(
-        home: HomeScreen(),
+      child: MaterialApp(
+        title: 'Medicall Registration',
         debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFFF1A922),
+            primary: const Color(0xFFF1A922),
+            primaryContainer: const Color(0xFFFBE3A4),
+            secondary: const Color(0xFFC68600),
+            secondaryContainer: const Color(0xFFFFE8B3),
+            surface: const Color(0xFFFFFFFF),
+            surfaceContainerHighest: const Color(0xFFF8F8F8),
+            error: const Color(0xFFD32F2F),
+            onPrimary: Colors.white,
+          ),
+          scaffoldBackgroundColor: const Color(0xFFFFFDF8),
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color(0xFFF1A922),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            centerTitle: true,
+            iconTheme: IconThemeData(color: Colors.white),
+            actionsIconTheme: IconThemeData(color: Colors.white),
+            titleTextStyle: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          cardTheme: const CardThemeData(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(16)),
+            ),
+            color: Colors.white,
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: const Color(0xFFF8F8F8),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFD9D9D9)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFD9D9D9)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFF1A922), width: 2),
+            ),
+            hintStyle: const TextStyle(color: Color(0xFF9E9E9E)),
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              elevation: 1,
+              minimumSize: const Size(double.infinity, 52),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              backgroundColor: const Color(0xFFF1A922),
+              foregroundColor: Colors.white,
+              textStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          progressIndicatorTheme: const ProgressIndicatorThemeData(
+            color: Color(0xFFF1A922),
+          ),
+        ),
+        home: const HomeScreen(),
       ),
     );
   }

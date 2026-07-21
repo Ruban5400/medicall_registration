@@ -23,6 +23,8 @@ class _GetItemDetailsState extends State<GetItemDetails> {
   Map<String, dynamic>? selectedVisitor;
   Map<String, dynamic>? printSelectedVisitor;
   bool _isPrinting = false;
+  bool _isSearching = false;
+  bool _hasSearched = false;
 
   @override
   void initState() {
@@ -128,178 +130,408 @@ class _GetItemDetailsState extends State<GetItemDetails> {
     }
   }
 
+  void _showNotFoundSnackbar() {
+    if (mounted) {
+      setState(() {
+        _hasSearched = true;
+        selectedVisitor = null;
+        printSelectedVisitor = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              SizedBox(width: 8),
+              Text('Visitor not found in system database'),
+            ],
+          ),
+          backgroundColor: const Color(0xFFD32F2F),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
+  }
+
+  void _showPrintSuccessNotification(String visitorName) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: Colors.white, size: 22),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Badge Printed Successfully — $visitorName',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF2E7D32),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final config = Provider.of<ConfigurationPageController>(context);
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: const Color(0xFFFFFDF8),
+      appBar: AppBar(
+        title: const Text(
+          "Visitor Search & Registration",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: const Color(0xFFF1A922),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: Consumer<MainController>(
         builder: (BuildContext context, MainController value, Widget? child) {
-          return Form(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 100.0),
+          return SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            child: Form(
               child: Column(
-                mainAxisAlignment: selectedVisitor == null
-                    ? MainAxisAlignment.center
-                    : MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    "Visitor Data",
-                    style: TextStyle(
-                        color: Colors.indigo,
-                        fontSize: 25,
-                        fontWeight: FontWeight.bold,
-                        fontStyle: FontStyle.italic),
-                  ),
-                  SizedBox(
-                    height: 10,
-                  ),
-                  CustomTextFieldDesign(
-                    label: 'Enter code',
-                    controller: value.getItemController,
-                    focusNode: _focusNode,
-                  ),
-                  SizedBox(
-                    height: 10,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
-                    child: Row(
-                      children: [
-                        // Get Details Button
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            icon: const Icon(Icons.search,color: Colors.white,),
-                            label: const Text("Get Details",style: TextStyle(color: Colors.white),),
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              backgroundColor: Colors.indigo,
-                            ),
-                            onPressed: () async {
-                              String mobile = value.getItemController.text.trim();
-                              _findVisitorByMobile(mobile);
-                              setState(() {});
-                            },
-                          ),
-                        ),
-
-                        // Add spacing only if print button is shown
-                        if (printSelectedVisitor != null) const SizedBox(width: 12),
-
-                        // Print Button
-                        if (printSelectedVisitor != null)
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              icon: const Icon(Icons.print,color: Colors.white),
-                              label: const Text("Print",style: TextStyle(color: Colors.white),),
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                  // Search Input Card
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: const [
+                              Icon(Icons.search_outlined, color: Color(0xFFF1A922)),
+                              SizedBox(width: 8),
+                              Text(
+                                "Enter Mobile / Registration Code",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF1E1E1E),
                                 ),
-                                backgroundColor: Colors.green,
                               ),
-                              onPressed: _isPrinting
-                                  ? null
-                                  : () async {
-                                      if (_isPrinting) return;
-                                      setState(() {
-                                        _isPrinting = true;
-                                        value.getItemController.clear();
-                                      });
-
-                                      try {
-                                        Sunmi printer = Sunmi(printSelectedVisitor: printSelectedVisitor);
-                                        await printer.printReceipt(config.paperWidth, config.paperHeight);
-
-                                        if (printSelectedVisitor != null) {
-                                          printSelectedVisitor!['is_visited'] = true;
-                                        }
-
-                                        final mobile = selectedVisitor?['mobile_number']?.toString() ?? '';
-                                        if (mobile.isNotEmpty && printSelectedVisitor != null) {
-                                          final success = await ApiService.sendVisitorData(
-                                            printSelectedVisitor!,
-                                            mobile,
-                                          );
-
-                                          if (!success) {
-                                            debugPrint("Failed to send data to server");
-                                          }
-                                        }
-
-                                        if (mounted) {
-                                          Provider.of<MainController>(context, listen: false)
-                                              .scannBarCode(context);
-                                        }
-                                      } catch (e) {
-                                        debugPrint("Print error: $e");
-                                      } finally {
-                                        if (mounted) {
-                                          setState(() {
-                                            _isPrinting = false;
-                                          });
-                                        }
-                                      }
-                                    },
-                            ),
+                            ],
                           ),
-                      ],
+                          const SizedBox(height: 12),
+                          CustomTextFieldDesign(
+                            label: 'Mobile / Code',
+                            controller: value.getItemController,
+                            focusNode: _focusNode,
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              // Get Details Button
+                              Expanded(
+                                child: SizedBox(
+                                  height: 52,
+                                  child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFF1A922),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    onPressed: (_isSearching || _isPrinting)
+                                        ? null
+                                        : () async {
+                                            String mobile = value.getItemController.text.trim();
+                                            setState(() {
+                                              _isSearching = true;
+                                              _hasSearched = true;
+                                            });
+                                            try {
+                                              _findVisitorByMobile(mobile);
+                                            } finally {
+                                              if (mounted) {
+                                                setState(() {
+                                                  _isSearching = false;
+                                                });
+                                              }
+                                            }
+                                          },
+                                    child: _isSearching
+                                        ? Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: const [
+                                              SizedBox(
+                                                width: 18,
+                                                height: 18,
+                                                child: CircularProgressIndicator(
+                                                  color: Colors.white,
+                                                  strokeWidth: 2.5,
+                                                ),
+                                              ),
+                                              SizedBox(width: 8),
+                                              Text("Please wait...",
+                                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                            ],
+                                          )
+                                        : Row(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: const [
+                                              Icon(Icons.search, color: Colors.white),
+                                              SizedBox(width: 6),
+                                              Text("Get Details",
+                                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                            ],
+                                          ),
+                                  ),
+                                ),
+                              ),
+
+                              if (printSelectedVisitor != null) const SizedBox(width: 12),
+
+                              // Print Button
+                              if (printSelectedVisitor != null)
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 52,
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFFC68600),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      onPressed: (_isPrinting || _isSearching)
+                                          ? null
+                                          : () async {
+                                              if (_isPrinting) return;
+                                              setState(() {
+                                                _isPrinting = true;
+                                                value.getItemController.clear();
+                                              });
+
+                                              final vName = selectedVisitor?['name']?.toString() ?? 'Visitor';
+
+                                              try {
+                                                Sunmi printer = Sunmi(printSelectedVisitor: printSelectedVisitor);
+                                                await printer.printReceipt(config.paperWidth, config.paperHeight);
+
+                                                if (printSelectedVisitor != null) {
+                                                  printSelectedVisitor!['is_visited'] = true;
+                                                }
+
+                                                final mobile = selectedVisitor?['mobile_number']?.toString() ?? '';
+                                                if (mobile.isNotEmpty && printSelectedVisitor != null) {
+                                                  final success = await ApiService.sendVisitorData(
+                                                    printSelectedVisitor!,
+                                                    mobile,
+                                                  );
+
+                                                  if (!success) {
+                                                    debugPrint("Failed to send data to server");
+                                                  }
+                                                }
+
+                                                if (mounted) {
+                                                  _showPrintSuccessNotification(vName);
+                                                  Provider.of<MainController>(context, listen: false)
+                                                      .scannBarCode(context);
+                                                }
+                                              } catch (e) {
+                                                debugPrint("Print error: $e");
+                                              } finally {
+                                                if (mounted) {
+                                                  setState(() {
+                                                    _isPrinting = false;
+                                                  });
+                                                }
+                                              }
+                                            },
+                                      child: _isPrinting
+                                          ? Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: const [
+                                                SizedBox(
+                                                  width: 18,
+                                                  height: 18,
+                                                  child: CircularProgressIndicator(
+                                                    color: Colors.white,
+                                                    strokeWidth: 2.5,
+                                                  ),
+                                                ),
+                                                SizedBox(width: 8),
+                                                Text("Please wait...",
+                                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                              ],
+                                            )
+                                          : Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: const [
+                                                Icon(Icons.print_outlined, color: Colors.white),
+                                                SizedBox(width: 6),
+                                                Text("Print Badge",
+                                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                              ],
+                                            ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
-                  SizedBox(
-                    height: 10,
-                  ),
-                  if (printSelectedVisitor != null)
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(minHeight: 100),
-                      child: Card(
-                        elevation: 3,
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                  const SizedBox(height: 20),
+
+                  // Error / Empty State Card
+                  if (selectedVisitor == null && _hasSearched)
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.search_off_rounded, size: 56, color: Color(0xFFC68600)),
+                            const SizedBox(height: 12),
+                            const Text(
+                              "Visitor Not Found",
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1E1E1E)),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              "Check the QR code or try scanning again.",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 14, color: Color(0xFF666666)),
+                            ),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              height: 52,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  Provider.of<MainController>(context, listen: false).scannBarCode(context);
+                                },
+                                icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+                                label: const Text("Scan Again", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFF1A922),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 16, horizontal: 20),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: selectedVisitor!.entries.map((entry) {
-                              return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 6),
-                                child: RichText(
-                                  text: TextSpan(
-                                    children: [
-                                      TextSpan(
-                                        text:
-                                            "${entry.key.toString().replaceAll('_', ' ').toUpperCase()}: ",
-                                        style: const TextStyle(
-                                          color: Colors.black54,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      TextSpan(
-                                        text: entry.value?.toString() ?? '',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
+                      ),
+                    ),
+
+                  // Premium Visitor Details Card
+                  if (selectedVisitor != null)
+                    Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  "Visitor Details",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFF1A922),
                                   ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: (printSelectedVisitor?['is_visited'] == true)
+                                        ? const Color(0xFFFFF9C4)
+                                        : const Color(0xFFE8F5E9),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    (printSelectedVisitor?['is_visited'] == true)
+                                        ? "🟡 Already Printed"
+                                        : "🟢 Ready",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: (printSelectedVisitor?['is_visited'] == true)
+                                          ? const Color(0xFFC68600)
+                                          : const Color(0xFF2E7D32),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Divider(height: 24, color: Color(0xFFD9D9D9)),
+                            ...selectedVisitor!.entries.map((entry) {
+                              final labelKey = entry.key.toString().replaceAll('_', ' ').toUpperCase();
+                              final valStr = entry.value?.toString() ?? '';
+
+                              IconData rowIcon = Icons.info_outline;
+                              if (labelKey.contains('NAME')) rowIcon = Icons.person_outline;
+                              if (labelKey.contains('MOBILE') || labelKey.contains('PHONE')) rowIcon = Icons.phone_outlined;
+                              if (labelKey.contains('EMAIL')) rowIcon = Icons.email_outlined;
+                              if (labelKey.contains('DESIGNATION')) rowIcon = Icons.work_outline;
+                              if (labelKey.contains('COMPANY') || labelKey.contains('ORGANIZATION')) rowIcon = Icons.business_outlined;
+
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(rowIcon, size: 20, color: const Color(0xFFF1A922)),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: RichText(
+                                        text: TextSpan(
+                                          children: [
+                                            TextSpan(
+                                              text: "$labelKey\n",
+                                              style: const TextStyle(
+                                                color: Color(0xFF666666),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            TextSpan(
+                                              text: valStr.isNotEmpty ? valStr : '-',
+                                              style: const TextStyle(
+                                                color: Color(0xFF1E1E1E),
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               );
                             }).toList(),
-                          ),
+                          ],
                         ),
                       ),
                     ),
@@ -309,28 +541,15 @@ class _GetItemDetailsState extends State<GetItemDetails> {
           );
         },
       ),
-      floatingActionButton: config.printerType == 'Bluetooth'
-          ? Padding(
-              padding: const EdgeInsets.only(left: 36.0),
-              child: FloatingActionButton(
-                child: const Icon(Icons.qr_code_scanner),
-                onPressed: () async {
-                  Provider.of<MainController>(context, listen: false)
-                      .scannBarCode(context);
-                },
-              ),
-            )
-          : null,
-    );
-  }
-
-  void _showNotFoundSnackbar() {
-    if (!mounted) return;
-    setState(() {
-      selectedVisitor = null;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Visitor not found')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          Provider.of<MainController>(context, listen: false)
+              .scannBarCode(context);
+        },
+        backgroundColor: const Color(0xFFF1A922),
+        icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+        label: const Text("Scan QR", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      ),
     );
   }
 }

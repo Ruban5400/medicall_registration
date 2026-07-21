@@ -20,6 +20,7 @@ class _PrinterConfigurationScreenState
   final TextEditingController heightController = TextEditingController();
   final TextEditingController widthController = TextEditingController();
   int appCount = 0;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -55,38 +56,59 @@ class _PrinterConfigurationScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: const Color(0xFFFFFDF8),
       appBar: AppBar(
         title: const Text(
           "Printer Configuration",
           style: TextStyle(
-              color: Colors.indigo,
-              fontSize: 25,
-              fontWeight: FontWeight.bold,
-              fontStyle: FontStyle.italic),
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.grey.shade50,
+        backgroundColor: const Color(0xFFF1A922),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(15),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Card(
-              child: Container(
-                padding: const EdgeInsets.only(top: 15, left: 10),
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Select Printer Type",
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    Row(
+                      children: const [
+                        Icon(Icons.print_outlined, color: Color(0xFFF1A922)),
+                        SizedBox(width: 10),
+                        Text(
+                          "Select Printer Type",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E1E1E),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 10),
+                    const Divider(height: 24, color: Color(0xFFD9D9D9)),
                     RadioListTile<String>(
                       value: "Sunmi",
                       groupValue: selectedPrinter,
-                      title: const Text("Sunmi Printer"),
+                      activeColor: const Color(0xFFF1A922),
+                      title: const Text(
+                        "Sunmi POS Thermal Printer",
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                       onChanged: (val) {
                         setState(() {
                           selectedPrinter = val;
@@ -98,7 +120,11 @@ class _PrinterConfigurationScreenState
                     RadioListTile<String>(
                       value: "Bluetooth",
                       groupValue: selectedPrinter,
-                      title: const Text("Bluetooth Printer"),
+                      activeColor: const Color(0xFFF1A922),
+                      title: const Text(
+                        "Bluetooth External Printer",
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                       onChanged: (val) => setState(() => selectedPrinter = val),
                     ),
                   ],
@@ -109,56 +135,124 @@ class _PrinterConfigurationScreenState
             TextField(
               controller: heightController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                  labelText: "Paper Height (mm)", border: OutlineInputBorder()),
+              decoration: InputDecoration(
+                labelText: "Paper Height (mm)",
+                hintText: "Enter height in mm e.g. 68",
+                prefixIcon: const Icon(Icons.height, color: Color(0xFFF1A922)),
+                filled: true,
+                fillColor: const Color(0xFFF8F8F8),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFF1A922), width: 2),
+                ),
+              ),
             ),
-            const SizedBox(height: 15),
+            const SizedBox(height: 16),
             TextField(
               controller: widthController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                  labelText: "Paper Width (mm)", border: OutlineInputBorder()),
+              decoration: InputDecoration(
+                labelText: "Paper Width (mm)",
+                hintText: "Enter width in mm e.g. 58",
+                prefixIcon: const Icon(Icons.swap_horiz, color: Color(0xFFF1A922)),
+                filled: true,
+                fillColor: const Color(0xFFF8F8F8),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFF1A922), width: 2),
+                ),
+              ),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () async {
-                if (selectedPrinter != null &&
-                    heightController.text.isNotEmpty &&
-                    widthController.text.isNotEmpty) {
-                  Provider.of<ConfigurationPageController>(context, listen: false)
-                      .setConfiguration(
-                    selectedPrinter!,
-                    double.tryParse(heightController.text) ?? 0,
-                    double.tryParse(widthController.text) ?? 0,
-                  );
-                  await _incrementAppCount();
+            const SizedBox(height: 28),
+            SizedBox(
+              height: 52,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF1A922),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                onPressed: _isSaving
+                    ? null
+                    : () async {
+                        if (selectedPrinter != null &&
+                            heightController.text.isNotEmpty &&
+                            widthController.text.isNotEmpty) {
+                          setState(() => _isSaving = true);
+                          try {
+                            Provider.of<ConfigurationPageController>(context, listen: false)
+                                .setConfiguration(
+                              selectedPrinter!,
+                              double.tryParse(heightController.text) ?? 0,
+                              double.tryParse(widthController.text) ?? 0,
+                            );
+                            await _incrementAppCount();
 
-                  if (!mounted) return;
+                            if (!mounted) return;
 
-                  final storage = GetStorage();
-                  final cachedData = storage.read('global_visitor_data');
-                  final bool hasCache = cachedData != null &&
-                      (cachedData is Map && cachedData['data'] != null) || appCount > 1;
+                            final storage = GetStorage();
+                            final cachedData = storage.read('global_visitor_data');
+                            final bool hasCache = cachedData != null &&
+                                (cachedData is Map && cachedData['data'] != null) || appCount > 1;
 
-                  if (!hasCache) {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const DataLoaderScreen()),
-                    );
-                  } else {
-                    Provider.of<MainController>(context, listen: false)
-                        .scannBarCode(context);
-                  }
-                } else {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Please fill all the fields")),
-                    );
-                  }
-                }
-              },
-              child: const Text("Continue"),
-            )
+                            if (!hasCache) {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(builder: (_) => const DataLoaderScreen()),
+                              );
+                            } else {
+                              Provider.of<MainController>(context, listen: false)
+                                  .scannBarCode(context);
+                            }
+                          } finally {
+                            if (mounted) setState(() => _isSaving = false);
+                          }
+                        } else {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text("Please select a printer and enter valid paper dimensions"),
+                                backgroundColor: const Color(0xFFD32F2F),
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                child: _isSaving
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Text("Please wait...", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        ],
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.check_circle_outline, color: Colors.white),
+                          SizedBox(width: 8),
+                          Text("Save & Continue", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+              ),
+            ),
           ],
         ),
       ),

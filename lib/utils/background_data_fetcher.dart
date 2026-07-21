@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'widgets/scan_vCard.dart';
 
 class BackgroundDataFetcher with WidgetsBindingObserver {
   static final BackgroundDataFetcher _instance = BackgroundDataFetcher._internal();
@@ -20,6 +22,8 @@ class BackgroundDataFetcher with WidgetsBindingObserver {
     _isStarted = true;
     WidgetsBinding.instance.addObserver(this);
     _startTimer();
+    VCardScanner.uploadUnsyncedLeadsToSupabase();
+    _fetchAndStoreHallMaster();
   }
 
   void stop() {
@@ -35,6 +39,8 @@ class BackgroundDataFetcher with WidgetsBindingObserver {
     _timer = Timer.periodic(const Duration(minutes: 10), (_) {
       if (_isInForeground) {
         _fetchAndStoreData();
+        _fetchAndStoreHallMaster();
+        VCardScanner.uploadUnsyncedLeadsToSupabase();
       }
     });
   }
@@ -59,8 +65,31 @@ class BackgroundDataFetcher with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _fetchAndStoreHallMaster() async {
+    try {
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('hall_master')
+          .select('id, hall_code, hall_name, display_order, is_active')
+          .eq('is_active', true)
+          .order('display_order', ascending: true);
+
+      final List<dynamic> responseList = response as List<dynamic>;
+      if (responseList.isNotEmpty) {
+        await storage.write('hall_master', responseList);
+        debugPrint("🏢 Hall master updated from Supabase: ${responseList.length} halls.");
+      }
+    } catch (e) {
+      debugPrint("❌ Error fetching hall master from Supabase: $e");
+    }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _isInForeground = (state == AppLifecycleState.resumed || state == AppLifecycleState.inactive);
+    if (state == AppLifecycleState.resumed) {
+      VCardScanner.uploadUnsyncedLeadsToSupabase();
+      _fetchAndStoreHallMaster();
+    }
   }
 }
