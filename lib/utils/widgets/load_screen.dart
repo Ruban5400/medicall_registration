@@ -25,21 +25,18 @@ class _DataLoaderScreenState extends State<DataLoaderScreen> {
 
   Future<void> fetchAndStoreData() async {
     try {
-      final response = await http.get(
-        Uri.parse('https://crm.medicall.in/api/fetch-visitors'),
-      );
+      final response = await http
+          .get(Uri.parse('https://crm.medicall.in/api/fetch-visitors'))
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        await storage.write('global_visitor_data', data);
-        debugPrint("✅ Data stored successfully in GetStorage");
+        if (data != null) {
+          await storage.write('global_visitor_data', data);
+          debugPrint("✅ Data stored successfully in GetStorage");
+        }
 
         if (mounted) {
-          // Navigator.pushReplacement(
-          //   context,
-          //   // MaterialPageRoute(builder: (_) => const GetItemDetails()),
-          //   MaterialPageRoute(builder: (_) => const WelcomePage()),
-          // );
           Provider.of<MainController>(context, listen: false)
               .scannBarCode(context);
         }
@@ -52,6 +49,7 @@ class _DataLoaderScreenState extends State<DataLoaderScreen> {
   }
 
   void showError(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 

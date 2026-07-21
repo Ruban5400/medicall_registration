@@ -20,46 +20,64 @@ class _VCardScannerState extends State<VCardScanner> {
   final box = GetStorage();
   bool isScanning = false;
   final _flutterBeepPlusPlugin = FlutterBeepPlus();
+  late final MobileScannerController cameraController;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   @override
   void initState() {
     super.initState();
     box.writeIfNull('leads', []);
+    cameraController = MobileScannerController(
+      facing: CameraFacing.back,
+      detectionSpeed: DetectionSpeed.noDuplicates,
+      detectionTimeoutMs: 500,
+    );
     _startNetworkListener();
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription?.cancel();
+    cameraController.dispose();
+    super.dispose();
   }
 
   Future<void> handleScan(String rawValue) async {
     if (isScanning) return;
     isScanning = true;
 
-    final contact = parseCustomVCard(rawValue);
+    final contact = Map<String, dynamic>.from(parseCustomVCard(rawValue));
 
     if (contact.isNotEmpty) {
       final now = DateTime.now();
-      // final now = DateTime.now().add(const Duration(days: 3));
-
       final formattedDate = DateFormat('yyyy-MM-dd').format(now);
 
       contact['hall_no'] = widget.hallNo;
       contact['date'] = formattedDate;
+      contact['is_synced'] = false;
 
       final List<dynamic> currentLeads = box.read('leads') ?? [];
       currentLeads.add(contact);
       await box.write('leads', currentLeads);
 
-      setState(() {}); // Refresh UI
-      showSnackBar('✅ Data saved');
+      if (mounted) {
+        setState(() {}); // Refresh UI
+        showSnackBar('✅ Data saved');
+      }
 
       Future.delayed(const Duration(seconds: 2), () {
         isScanning = false;
       });
     } else {
-      showSnackBar('❌ Invalid or incomplete vCard');
+      if (mounted) {
+        showSnackBar('❌ Invalid or incomplete vCard');
+      }
       isScanning = false;
     }
   }
 
   void showSnackBar(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
     );
@@ -68,10 +86,22 @@ class _VCardScannerState extends State<VCardScanner> {
   bool isConnected = false;
 
   void _startNetworkListener() async {
-    var connectivityResult = await Connectivity().checkConnectivity();
-    isConnected = connectivityResult != ConnectivityResult.none;
-    if (isConnected) {
-      await uploadTodayLeadsToSupabase();
+    try {
+      final initialResults = await Connectivity().checkConnectivity();
+      bool connected = initialResults.any((result) => result != ConnectivityResult.none);
+      if (connected) {
+        await uploadTodayLeadsToSupabase();
+      }
+
+      _connectivitySubscription?.cancel();
+      _connectivitySubscription = Connectivity().onConnectivityChanged.listen((results) async {
+        bool isNowConnected = results.any((result) => result != ConnectivityResult.none);
+        if (isNowConnected) {
+          await uploadTodayLeadsToSupabase();
+        }
+      });
+    } catch (e) {
+      debugPrint('Connectivity listener error: $e');
     }
   }
 
@@ -80,17 +110,22 @@ class _VCardScannerState extends State<VCardScanner> {
     final todayStr =
         "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
 
-    // ✅ Correct: Read from storage
     final List<dynamic> scannedLeadsRaw = box.read('leads') ?? [];
 
-    // Ensure it's a List<Map<String, dynamic>>
     final List<Map<String, dynamic>> scannedLeads =
         scannedLeadsRaw.map((e) => Map<String, dynamic>.from(e)).toList();
 
-    final todayLeads =
-        scannedLeads.where((lead) => lead['date'] == todayStr).toList();
+    final unsyncedTodayLeads = scannedLeads.where((lead) {
+      final leadDate = lead['date'];
+      final isSynced = lead['is_synced'] == true;
+      return leadDate == todayStr && !isSynced;
+    }).toList();
 
-    final filteredLeads = todayLeads
+    if (unsyncedTodayLeads.isEmpty) {
+      return;
+    }
+
+    final filteredLeads = unsyncedTodayLeads
         .map((lead) => {
               'name': lead['name'],
               'email': lead['email'],
@@ -100,35 +135,28 @@ class _VCardScannerState extends State<VCardScanner> {
             })
         .toList();
 
-    if (filteredLeads.isEmpty) {
-      print('ℹ️ No leads to upload for today.');
-      return;
-    }
-
     final supabase = Supabase.instance.client;
 
     try {
       await supabase.from('medicall_visitor').insert(filteredLeads);
-      print('✅ Uploaded ${filteredLeads.length} leads to Supabase.');
+
+      // Upon successful insert, mark uploaded entries as is_synced = true
+      final updatedLeadsRaw = scannedLeadsRaw.map((e) {
+        final map = Map<String, dynamic>.from(e);
+        if (map['date'] == todayStr && map['is_synced'] != true) {
+          map['is_synced'] = true;
+        }
+        return map;
+      }).toList();
+
+      await box.write('leads', updatedLeadsRaw);
     } catch (e) {
-      print('❌ Error uploading leads: $e');
+      debugPrint('❌ Error uploading leads: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final List<dynamic> scannedLeads = box.read('leads') ?? [];
-
-    Map<String, List<dynamic>> scannedLeadsByDate = {};
-    print('scannedLeads --- >>> $scannedLeads');
-    for (var lead in scannedLeads) {
-      final date = lead['date'] ?? 'Unknown';
-      scannedLeadsByDate.putIfAbsent(date, () => []).add(lead);
-    }
-
-    final sortedDates = scannedLeadsByDate.keys.toList()
-      ..sort((a, b) => b.compareTo(a));
-
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -145,11 +173,7 @@ class _VCardScannerState extends State<VCardScanner> {
         iconTheme: const IconThemeData(color: Colors.indigo),
       ),
       body: MobileScanner(
-        controller: MobileScannerController(
-          facing: CameraFacing.back,
-          detectionSpeed: DetectionSpeed.noDuplicates,
-          detectionTimeoutMs: 500,
-        ),
+        controller: cameraController,
         onDetect: (barcodeCapture) {
           final barcode = barcodeCapture.barcodes.first;
           final raw = barcode.rawValue;

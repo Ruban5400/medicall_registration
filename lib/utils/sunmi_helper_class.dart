@@ -1,6 +1,4 @@
-import 'dart:typed_data';
 import 'dart:ui' as ui;
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -15,13 +13,21 @@ class Sunmi {
   Sunmi({required this.printSelectedVisitor});
 
   Future<void> initialize() async {
-    await SunmiPrinter.bindingPrinter();
-    await SunmiPrinter.initPrinter();
-    await SunmiPrinter.setAlignment(SunmiPrintAlign.CENTER);
+    try {
+      await SunmiPrinter.bindingPrinter();
+      await SunmiPrinter.initPrinter();
+      await SunmiPrinter.setAlignment(SunmiPrintAlign.CENTER);
+    } catch (e) {
+      debugPrint('Printer initialize error: $e');
+    }
   }
 
   Future<void> closePrinter() async {
-    await SunmiPrinter.bindingPrinter();
+    try {
+      await SunmiPrinter.bindingPrinter();
+    } catch (e) {
+      debugPrint('Printer close error: $e');
+    }
   }
 
   // Main method to call
@@ -42,9 +48,7 @@ class Sunmi {
     }
     await printReceiptWithUserAndQR(
       name: printSelectedVisitor?['name'] ?? ' ',
-      // mobileNumber : printSelectedVisitor?['mobile_number'] ?? ' ',
-      // email : printSelectedVisitor?['email'] ?? ' ',
-      role: '$designation $company' ?? ' ',
+      role: '$designation $company',
       paperWidthMm: paperWidthMm,
       paperHeightMm: paperHeightMm,
     );
@@ -53,32 +57,30 @@ class Sunmi {
 
   Future<void> printReceiptWithUserAndQR({
     required String name,
-    // required String mobileNumber,
-    // required String email,
     required String role,
     required double paperWidthMm,
     required double paperHeightMm,
   }) async {
     await initialize();
 
-    final image = await _generateFullReceiptImage(
-      name: name,
-      // mobileNumber:mobileNumber,
-      // email:email,
-      role: role,
-      paperWidthMm: paperWidthMm,
-      paperHeightMm: paperHeightMm,
-    );
+    try {
+      final image = await _generateFullReceiptImage(
+        name: name,
+        role: role,
+        paperWidthMm: paperWidthMm,
+        paperHeightMm: paperHeightMm,
+      );
 
-    await SunmiPrinter.setAlignment(SunmiPrintAlign.LEFT);
-    await SunmiPrinter.printImage(image);
-    await SunmiPrinter.lineWrap(1);
+      await SunmiPrinter.setAlignment(SunmiPrintAlign.LEFT);
+      await SunmiPrinter.printImage(image);
+      await SunmiPrinter.lineWrap(1);
+    } catch (e) {
+      debugPrint('Print receipt error: $e');
+    }
   }
 
   Future<Uint8List> _generateFullReceiptImage({
     required String name,
-    // required String mobileNumber,
-    // required String email,
     required String role,
     required double paperWidthMm,
     required double paperHeightMm,

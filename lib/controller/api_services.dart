@@ -1,3 +1,9 @@
+// ------------------------------------------------------------------
+// Legacy Product Barcode Module
+// Currently not used in Visitor Registration workflow.
+// Retained for future Sunmi product/barcode functionality.
+// ------------------------------------------------------------------
+
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
@@ -54,21 +60,14 @@ class ApiServices {
       'dataBase': dataBase
     };
 
-    print(headers);
-var url = Uri.parse('$server/get_barcode/${itemCode.trim()}');
-print(url);
-    // var headers = {
-    //   'userName': 'root',
-    //   'dataBase': 'techsysdb'
-    // };
+    var url = Uri.parse('$server/get_barcode/${itemCode.trim()}');
+
     var request = http.Request('GET',url);
 
     request.headers.addAll(headers);
 
     http.StreamedResponse response = await request.send();
 
-
-    print(response.statusCode);
     if (response.statusCode == 200) {
       // Parse the streamed response body
      var responseBody = await response.stream.bytesToString();

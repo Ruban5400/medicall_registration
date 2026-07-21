@@ -10,17 +10,37 @@ final List<Map<String, dynamic>> gridItems = [
   {'image': 'assets/lottie/qr.json', 'label': 'Registration'},
 ];
 
-class HomeScreen extends StatelessWidget {
-
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final TextEditingController hallController = TextEditingController();
-    final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  State<HomeScreen> createState() => _HomeScreenState();
+}
 
-    Provider.of<ConfigurationPageController>(context, listen: false)
-        .configurePageInitialization();
+class _HomeScreenState extends State<HomeScreen> {
+  late final TextEditingController hallController;
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    hallController = TextEditingController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Provider.of<ConfigurationPageController>(context, listen: false)
+            .configurePageInitialization();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    hallController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       body: Center(
@@ -35,20 +55,12 @@ class HomeScreen extends StatelessWidget {
                     height: 100,
                     child: Image.asset('assets/images/Logo.png'),
                   ),
-                  // const Text(
-                  //   "Registration",
-                  //   style: TextStyle(
-                  //       color: Colors.indigo,
-                  //       fontSize: 25,
-                  //       fontWeight: FontWeight.bold,
-                  //       fontStyle: FontStyle.italic),
-                  // ),
                   GridView.count(
                     crossAxisCount: 2,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
                     shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
+                    physics: const NeverScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(16),
                     children: List.generate(gridItems.length, (index) {
                       return GestureDetector(
@@ -82,23 +94,21 @@ class HomeScreen extends StatelessWidget {
                                         const SizedBox(height: 16),
                                         ElevatedButton.icon(
                                           onPressed: () {
-
                                             if (_formKey.currentState!.validate()) {
                                               Navigator.pop(context); // Close the dialog
                                               Navigator.push(
                                                 context,
                                                 MaterialPageRoute(
-                                                  builder: (context) =>  VCardScanner(hallController.text),
+                                                  builder: (context) => VCardScanner(hallController.text),
                                                 ),
                                               );
                                             }
                                           },
-                                          icon: const Icon(Icons.arrow_forward,color: Colors.white),
-                                          label: const Text("Proceed",style: TextStyle(color: Colors.white),),
+                                          icon: const Icon(Icons.arrow_forward, color: Colors.white),
+                                          label: const Text("Proceed", style: TextStyle(color: Colors.white)),
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: Colors.indigo,
-                                            padding:
-                                            const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                                           ),
                                         ),
                                       ],
@@ -129,11 +139,11 @@ class HomeScreen extends StatelessWidget {
                                     width: 100,
                                     child: Lottie.asset(
                                         gridItems[index]['image']!)),
-                                SizedBox(height: 10),
+                                const SizedBox(height: 10),
                                 Text(
                                   gridItems[index]['label'],
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       color: Colors.black, fontSize: 20),
                                 ),
                               ],

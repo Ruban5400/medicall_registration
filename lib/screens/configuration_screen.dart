@@ -19,28 +19,37 @@ class _PrinterConfigurationScreenState
   String? selectedPrinter;
   final TextEditingController heightController = TextEditingController();
   final TextEditingController widthController = TextEditingController();
-  int appCount =0;
+  int appCount = 0;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     _loadAppCount();
   }
 
+  @override
+  void dispose() {
+    heightController.dispose();
+    widthController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadAppCount() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      appCount = prefs.getInt('appCount') ?? 0;
-    });
+    if (mounted) {
+      setState(() {
+        appCount = prefs.getInt('appCount') ?? 0;
+      });
+    }
   }
 
   Future<void> _incrementAppCount() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      appCount++;
-      prefs.setInt('appCount', appCount);
-    });
+    appCount++;
+    await prefs.setInt('appCount', appCount);
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -65,7 +74,7 @@ class _PrinterConfigurationScreenState
           children: [
             Card(
               child: Container(
-                padding: EdgeInsets.only(top: 15, left: 10),
+                padding: const EdgeInsets.only(top: 15, left: 10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -112,7 +121,7 @@ class _PrinterConfigurationScreenState
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () async{
+              onPressed: () async {
                 if (selectedPrinter != null &&
                     heightController.text.isNotEmpty &&
                     widthController.text.isNotEmpty) {
@@ -123,27 +132,33 @@ class _PrinterConfigurationScreenState
                     double.tryParse(widthController.text) ?? 0,
                   );
                   await _incrementAppCount();
-                  // Navigate to loader+fetch screen
-                  if(appCount == 1){
+
+                  if (!mounted) return;
+
+                  final storage = GetStorage();
+                  final cachedData = storage.read('global_visitor_data');
+                  final bool hasCache = cachedData != null &&
+                      (cachedData is Map && cachedData['data'] != null) || appCount > 1;
+
+                  if (!hasCache) {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(builder: (_) => const DataLoaderScreen()),
                     );
-                  }else{
+                  } else {
                     Provider.of<MainController>(context, listen: false)
                         .scannBarCode(context);
                   }
-
-
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Please fill all the fields")),
-                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Please fill all the fields")),
+                    );
+                  }
                 }
               },
               child: const Text("Continue"),
             )
-
           ],
         ),
       ),

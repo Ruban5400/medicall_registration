@@ -32,7 +32,7 @@ class CustomTextFieldDesign extends StatelessWidget {
               focusNode: focusNode,
               decoration: InputDecoration(
                 labelText: label,
-                border: OutlineInputBorder(),
+                border: const OutlineInputBorder(),
               ),
             ),
           )

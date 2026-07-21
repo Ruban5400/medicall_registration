@@ -25,7 +25,6 @@ class ConfigurationPageController extends ChangeNotifier {
     var table = await HelperServices.getServerData(StringConstants.table);
     var database = await HelperServices.getServerData(StringConstants.dataBase);
     var isConfigured = await HelperServices.checkConfiguration();
-    print(isConfigured);
     if ( isConfigured) {
       enableTextField = false;
 
@@ -62,5 +61,16 @@ class ConfigurationPageController extends ChangeNotifier {
     paperHeight = height;
     paperWidth = width;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    serverNameController.dispose();
+    dataBaseNameController.dispose();
+    tableName.dispose();
+    userName.dispose();
+    password.dispose();
+    ipAddress.dispose();
+    super.dispose();
   }
 }

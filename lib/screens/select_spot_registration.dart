@@ -1,17 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controller/configuration_page_controller.dart';
-import '../controller/helper_services.dart';
 import '../screens/get_item_details.dart';
-import '../utils/widgets/button_widget.dart';
-
-import '../utils/widgets/custom_text_field_design.dart';
 
 final List<Map<String, dynamic>> gridItems = [
   {'image': 'assets/images/spot.png', 'label': 'Spot'},
   {'image': 'assets/images/online.png', 'label': 'Online'},
-  // {'image': 'assets/images/whatsapp.png', 'label': 'Whatsapp Registration'},
-  // {'image': 'assets/images/delegate.png', 'label': 'Online Delegates'},
 ];
 
 class SelectRegistrationType extends StatelessWidget {

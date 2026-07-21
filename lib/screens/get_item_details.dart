@@ -7,7 +7,6 @@ import '../controller/api_service.dart';
 import '../controller/configuration_page_controller.dart';
 import '../controller/main_controller.dart';
 import '../utils/sunmi_helper_class.dart';
-import '../utils/widgets/button_widget.dart';
 import '../utils/widgets/custom_text_field_design.dart';
 
 class GetItemDetails extends StatefulWidget {
@@ -23,12 +22,15 @@ class _GetItemDetailsState extends State<GetItemDetails> {
 
   Map<String, dynamic>? selectedVisitor;
   Map<String, dynamic>? printSelectedVisitor;
+  bool _isPrinting = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _focusNode.requestFocus();
+      if (mounted) {
+        _focusNode.requestFocus();
+      }
     });
   }
 
@@ -39,63 +41,71 @@ class _GetItemDetailsState extends State<GetItemDetails> {
   }
 
   void _findVisitorByMobile(String mobileNumber) async {
+    final rawStorage = storage.read('global_visitor_data');
     final List<dynamic>? visitorList =
-        storage.read('global_visitor_data')['data'];
+        (rawStorage is Map && rawStorage['data'] is List) ? rawStorage['data'] as List<dynamic> : null;
 
     if (visitorList != null) {
       final visitors = visitorList;
       final foundVisitor = visitors.firstWhere(
-        (v) => v['mobile_number'] == mobileNumber,
+        (v) => v is Map && v['mobile_number'] == mobileNumber,
         orElse: () => null,
       );
       if (foundVisitor != null) {
-        setState(() {
-          var globalData = Map<String, dynamic>.from(foundVisitor);
-          selectedVisitor = {
-            'name': '${globalData['salutation']} ${globalData['name']}',
-            'mobile_number': globalData['mobile_number'],
-            'email': globalData['email'],
-            'designation': globalData['designation'],
-            'company': globalData['organization'],
-          };
-          printSelectedVisitor = globalData;
-        });
+        if (mounted) {
+          setState(() {
+            var globalData = Map<String, dynamic>.from(foundVisitor);
+            selectedVisitor = {
+              'name': '${globalData['salutation'] ?? ''} ${globalData['name'] ?? ''}'.trim(),
+              'mobile_number': globalData['mobile_number'],
+              'email': globalData['email'],
+              'designation': globalData['designation'],
+              'company': globalData['organization'],
+            };
+            printSelectedVisitor = globalData;
+          });
+        }
       } else {
         try {
-          final response = await http.get(Uri.parse(
-              'https://crm.medicall.in/api/search-global-visitor?mobile_number=$mobileNumber'));
+          final response = await http
+              .get(Uri.parse(
+                  'https://crm.medicall.in/api/search-global-visitor?mobile_number=$mobileNumber'))
+              .timeout(const Duration(seconds: 15));
 
           if (response.statusCode == 200) {
             final json = jsonDecode(response.body);
 
-            if (json['status'] == 'success') {
+            if (json is Map && json['status'] == 'success') {
               final source = json['data_from'];
 
-              if (source == 'crm') {
+              if (source == 'crm' && json['data'] is Map) {
                 final crmData = json['data'];
-                setState(() {
-                  selectedVisitor = {
-                    'name': '${crmData['salutation']} ${crmData['name']}',
-                    'mobile_number': crmData['mobile_number'],
-                    'email': crmData['email'],
-                    'designation': crmData['designation'],
-                    'company': crmData['organization'],
-                  };
-                  printSelectedVisitor = json['data'];
-                });
-              } else if (source == 'goman' || source == null) {
-                // 7094473308
+                if (mounted) {
+                  setState(() {
+                    selectedVisitor = {
+                      'name': '${crmData['salutation'] ?? ''} ${crmData['name'] ?? ''}'.trim(),
+                      'mobile_number': crmData['mobile_number'],
+                      'email': crmData['email'],
+                      'designation': crmData['designation'],
+                      'company': crmData['organization'],
+                    };
+                    printSelectedVisitor = Map<String, dynamic>.from(json['data']);
+                  });
+                }
+              } else if ((source == 'goman' || source == null) && json['data'] is Map) {
                 final gomanData = json['data'];
-                setState(() {
-                  selectedVisitor = {
-                    'name': '${gomanData['title']} ${gomanData['name']}',
-                    'mobile_number': gomanData['mobile'],
-                    'email': gomanData['email'],
-                    'designation': gomanData['designation'],
-                    'company': gomanData['company'],
-                  };
-                  printSelectedVisitor = json['data'];
-                });
+                if (mounted) {
+                  setState(() {
+                    selectedVisitor = {
+                      'name': '${gomanData['title'] ?? ''} ${gomanData['name'] ?? ''}'.trim(),
+                      'mobile_number': gomanData['mobile'],
+                      'email': gomanData['email'],
+                      'designation': gomanData['designation'],
+                      'company': gomanData['company'],
+                    };
+                    printSelectedVisitor = Map<String, dynamic>.from(json['data']);
+                  });
+                }
               }
             } else {
               _showNotFoundSnackbar();
@@ -105,13 +115,17 @@ class _GetItemDetailsState extends State<GetItemDetails> {
           }
         } catch (e) {
           debugPrint('🌐 Error while fetching global visitor: $e');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error fetching visitor data')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Error fetching visitor data')),
+            );
+          }
         }
       }
     }
-    setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -149,51 +163,6 @@ class _GetItemDetailsState extends State<GetItemDetails> {
                   SizedBox(
                     height: 10,
                   ),
-                  // Padding(
-                  //   padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                  //   child: Row(
-                  //     mainAxisAlignment: printSelectedVisitor != null
-                  //         ? MainAxisAlignment.spaceBetween
-                  //         : MainAxisAlignment.center,
-                  //     children: [
-                  //       ButtonWidget(
-                  //           text: "Get Details",
-                  //           onClicked: () async {
-                  //             String mobile = value.getItemController.text.trim();
-                  //             _findVisitorByMobile(mobile);
-                  //             setState(() {});
-                  //           }),
-                  //       if (printSelectedVisitor != null)
-                  //         ButtonWidget(
-                  //             text: "Print",
-                  //             onClicked: () async {
-                  //               setState(() {
-                  //                 value.getItemController.clear();
-                  //               });
-                  //               Sunmi printer = Sunmi(
-                  //                   printSelectedVisitor: printSelectedVisitor);
-                  //               printer.printReceipt(
-                  //                   config.paperWidth, config.paperHeight);
-                  //               printSelectedVisitor!['is_visited'] = true;
-                  //               final success = await ApiService.sendVisitorData(
-                  //                   printSelectedVisitor!,
-                  //                   selectedVisitor!['mobile_number']);
-                  //               if (success) {
-                  //               } else {
-                  //                 // Show error or handle failure
-                  //                 print("Failed to send data to server");
-                  //               }
-                  //               Provider.of<MainController>(context,
-                  //                       listen: false)
-                  //                   .scannBarCode(context);
-                  //               // Navigator.of(context).pushAndRemoveUntil(
-                  //               //   MaterialPageRoute(builder: (context) => NextPage()),
-                  //               //       (Route<dynamic> route) => false,
-                  //               // );
-                  //             }),
-                  //     ],
-                  //   ),
-                  // ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
                     child: Row(
@@ -234,28 +203,49 @@ class _GetItemDetailsState extends State<GetItemDetails> {
                                 ),
                                 backgroundColor: Colors.green,
                               ),
-                              onPressed: () async {
-                                setState(() {
-                                  value.getItemController.clear();
-                                });
+                              onPressed: _isPrinting
+                                  ? null
+                                  : () async {
+                                      if (_isPrinting) return;
+                                      setState(() {
+                                        _isPrinting = true;
+                                        value.getItemController.clear();
+                                      });
 
-                                Sunmi printer = Sunmi(printSelectedVisitor: printSelectedVisitor);
-                                printer.printReceipt(config.paperWidth, config.paperHeight);
+                                      try {
+                                        Sunmi printer = Sunmi(printSelectedVisitor: printSelectedVisitor);
+                                        await printer.printReceipt(config.paperWidth, config.paperHeight);
 
-                                printSelectedVisitor!['is_visited'] = true;
+                                        if (printSelectedVisitor != null) {
+                                          printSelectedVisitor!['is_visited'] = true;
+                                        }
 
-                                final success = await ApiService.sendVisitorData(
-                                  printSelectedVisitor!,
-                                  selectedVisitor!['mobile_number'],
-                                );
+                                        final mobile = selectedVisitor?['mobile_number']?.toString() ?? '';
+                                        if (mobile.isNotEmpty && printSelectedVisitor != null) {
+                                          final success = await ApiService.sendVisitorData(
+                                            printSelectedVisitor!,
+                                            mobile,
+                                          );
 
-                                if (!success) {
-                                  print("Failed to send data to server");
-                                }
+                                          if (!success) {
+                                            debugPrint("Failed to send data to server");
+                                          }
+                                        }
 
-                                Provider.of<MainController>(context, listen: false)
-                                    .scannBarCode(context);
-                              },
+                                        if (mounted) {
+                                          Provider.of<MainController>(context, listen: false)
+                                              .scannBarCode(context);
+                                        }
+                                      } catch (e) {
+                                        debugPrint("Print error: $e");
+                                      } finally {
+                                        if (mounted) {
+                                          setState(() {
+                                            _isPrinting = false;
+                                          });
+                                        }
+                                      }
+                                    },
                             ),
                           ),
                       ],
@@ -335,6 +325,7 @@ class _GetItemDetailsState extends State<GetItemDetails> {
   }
 
   void _showNotFoundSnackbar() {
+    if (!mounted) return;
     setState(() {
       selectedVisitor = null;
     });

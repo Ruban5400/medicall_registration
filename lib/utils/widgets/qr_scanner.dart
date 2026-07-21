@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_beep_plus/flutter_beep_plus.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:vibration/vibration.dart';
-import 'package:vibration/vibration_presets.dart';
 
 class QRScannerPage extends StatefulWidget {
   final Function(String) onScanComplete;

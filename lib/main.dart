@@ -13,18 +13,35 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  await GetStorage.init();
-  await Supabase.initialize(
-      url: "https://aipcsnbimoszrvicqwec.supabase.co",
-      anonKey:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcGNzbmJpbW9zenJ2aWNxd2VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwOTc5ODIsImV4cCI6MjA2ODY3Mzk4Mn0.qAy6MdtZnCTAKz7cwrbOZBGjs2wYcnwkdMwk85Pw4Mk");
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Firebase init warning: $e');
+  }
 
+  try {
+    await GetStorage.init();
+  } catch (e) {
+    debugPrint('GetStorage init error: $e');
+  }
 
-  // Start background fetcher
-  BackgroundDataFetcher().start();
+  try {
+    await Supabase.initialize(
+        url: "https://aipcsnbimoszrvicqwec.supabase.co",
+        anonKey:
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpcGNzbmJpbW9zenJ2aWNxd2VjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMwOTc5ODIsImV4cCI6MjA2ODY3Mzk4Mn0.qAy6MdtZnCTAKz7cwrbOZBGjs2wYcnwkdMwk85Pw4Mk");
+  } catch (e) {
+    debugPrint('Supabase init warning: $e');
+  }
+
+  try {
+    BackgroundDataFetcher().start();
+  } catch (e) {
+    debugPrint('BackgroundDataFetcher start error: $e');
+  }
+
   runApp(const MyApp());
 }
 
