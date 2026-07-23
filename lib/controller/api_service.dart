@@ -18,7 +18,6 @@ class ApiService with ChangeNotifier {
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
-        print('5400-=-=-=->>.  $decoded');
         if (decoded is List) {
           _visitors = decoded;
           notifyListeners();
