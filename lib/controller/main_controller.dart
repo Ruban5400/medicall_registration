@@ -103,6 +103,30 @@ class MainController extends ChangeNotifier {
     );
   }
 
+  String _extractMobileFromVCard(String raw) {
+    if (!raw.startsWith('BEGIN:VCARD')) {
+      return raw.trim();
+    }
+    final lines = raw.split('\n');
+    for (final line in lines) {
+      final trimmed = line.trim();
+      if (trimmed.startsWith('TEL;TYPE=CELL:')) {
+        return trimmed.replaceFirst('TEL;TYPE=CELL:', '').trim();
+      } else if (trimmed.startsWith('TEL:')) {
+        return trimmed.replaceFirst('TEL:', '').trim();
+      } else if (trimmed.startsWith('TEL;CELL:')) {
+        return trimmed.replaceFirst('TEL;CELL:', '').trim();
+      }
+    }
+    for (final line in lines) {
+      final trimmed = line.trim();
+      if (trimmed.startsWith('REG_ID:')) {
+        return trimmed.replaceFirst('REG_ID:', '').trim();
+      }
+    }
+    return raw.trim();
+  }
+
   scannBarCode(
     BuildContext context,
   ) async {
@@ -113,7 +137,8 @@ class MainController extends ChangeNotifier {
               builder: (context) =>
                   QRScannerPage(onScanComplete: (String barcodeScanRes) async {
                     if (barcodeScanRes.isNotEmpty) {
-                      getItemController.text = barcodeScanRes.toString();
+                      final parsed = _extractMobileFromVCard(barcodeScanRes);
+                      getItemController.text = parsed;
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(

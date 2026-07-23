@@ -44,8 +44,12 @@ class _GetItemDetailsState extends State<GetItemDetails> {
 
   void _findVisitorByMobile(String mobileNumber) async {
     final rawStorage = storage.read('global_visitor_data');
-    final List<dynamic>? visitorList =
-        (rawStorage is Map && rawStorage['data'] is List) ? rawStorage['data'] as List<dynamic> : null;
+    List<dynamic>? visitorList;
+    if (rawStorage is List) {
+      visitorList = rawStorage;
+    } else if (rawStorage is Map && rawStorage['data'] is List) {
+      visitorList = rawStorage['data'] as List<dynamic>;
+    }
 
     if (visitorList != null) {
       final visitors = visitorList;

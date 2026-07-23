@@ -14,10 +14,11 @@ class ApiService with ChangeNotifier {
     try {
       final response = await http
           .get(Uri.parse(url))
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 180));
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
+        print('5400-=-=-=->>.  $decoded');
         if (decoded is List) {
           _visitors = decoded;
           notifyListeners();

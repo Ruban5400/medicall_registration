@@ -27,10 +27,11 @@ class _DataLoaderScreenState extends State<DataLoaderScreen> {
     try {
       final response = await http
           .get(Uri.parse('https://crm.medicall.in/api/fetch-visitors'))
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 180));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        print('5400-=-=-=->>123  $data');
         if (data != null) {
           await storage.write('global_visitor_data', data);
           debugPrint("✅ Data stored successfully in GetStorage");

@@ -25,14 +25,18 @@ class CustomTextFieldDesign extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           const Spacer(),
-          SizedBox(
-            width: MediaQuery.sizeOf(context).width * .5,
-            child: TextField(
-              controller: controller,
-              focusNode: focusNode,
-              decoration: InputDecoration(
-                labelText: label,
-                border: const OutlineInputBorder(),
+          Flexible(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.sizeOf(context).width * .5,
+              ),
+              child: TextField(
+                controller: controller,
+                focusNode: focusNode,
+                decoration: InputDecoration(
+                  labelText: label,
+                  border: const OutlineInputBorder(),
+                ),
               ),
             ),
           )
