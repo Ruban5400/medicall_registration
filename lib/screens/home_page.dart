@@ -41,11 +41,10 @@ class _HomeScreenState extends State<HomeScreen> {
       return rawHalls.map((e) => Map<String, dynamic>.from(e)).toList();
     }
     return [
-      {'hall_code': 'Hall A', 'hall_name': 'Hall A - Main Arena'},
-      {'hall_code': 'Hall B', 'hall_name': 'Hall B - Tech Expo'},
-      {'hall_code': 'Hall C', 'hall_name': 'Hall C - Medical Trade'},
       {'hall_code': 'Hall 1', 'hall_name': 'Hall 1'},
       {'hall_code': 'Hall 2', 'hall_name': 'Hall 2'},
+      {'hall_code': 'Hall 3', 'hall_name': 'Hall 3'},
+      {'hall_code': 'Hall 4', 'hall_name': 'Hall 4'},
     ];
   }
 
@@ -121,7 +120,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: List.generate(gridItems.length, (index) {
                         final label = gridItems[index]['label'] as String;
                         final isCheckIn = label == 'Check in';
-                        final iconData = isCheckIn ? Icons.qr_code_scanner : Icons.badge_outlined;
+                        final iconData = isCheckIn
+                            ? Icons.qr_code_scanner
+                            : Icons.badge_outlined;
                         final subtitleText = isCheckIn
                             ? "Scan visitor vCard QR"
                             : "Lookup visitor & print badge";
@@ -133,21 +134,31 @@ class _HomeScreenState extends State<HomeScreen> {
                                 context: context,
                                 builder: (BuildContext context) {
                                   return StatefulBuilder(
-                                    builder: (BuildContext context, StateSetter setDialogState) {
+                                    builder: (BuildContext context,
+                                        StateSetter setDialogState) {
                                       final hallList = _getHalls();
-                                      final bool hasMatchingSelected = selectedHallCode != null &&
-                                          hallList.any((h) => h['hall_code'] == selectedHallCode);
-                                      final currentSelected = hasMatchingSelected
-                                          ? selectedHallCode
-                                          : (hallList.isNotEmpty ? hallList.first['hall_code'] as String : null);
+                                      final bool hasMatchingSelected =
+                                          selectedHallCode != null &&
+                                              hallList.any((h) =>
+                                                  h['hall_code'] ==
+                                                  selectedHallCode);
+                                      final currentSelected =
+                                          hasMatchingSelected
+                                              ? selectedHallCode
+                                              : (hallList.isNotEmpty
+                                                  ? hallList.first['hall_code']
+                                                      as String
+                                                  : null);
 
                                       return AlertDialog(
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(20),
+                                          borderRadius:
+                                              BorderRadius.circular(20),
                                         ),
                                         title: Row(
                                           children: const [
-                                            Icon(Icons.meeting_room_outlined, color: Color(0xFFF1A922)),
+                                            Icon(Icons.meeting_room_outlined,
+                                                color: Color(0xFFF1A922)),
                                             SizedBox(width: 10),
                                             Text(
                                               "Select Exhibition Hall",
@@ -169,26 +180,47 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 isExpanded: true,
                                                 decoration: InputDecoration(
                                                   labelText: "Select Hall",
-                                                  prefixIcon: const Icon(Icons.meeting_room_outlined, color: Color(0xFFF1A922)),
+                                                  prefixIcon: const Icon(
+                                                      Icons
+                                                          .meeting_room_outlined,
+                                                      color: Color(0xFFF1A922)),
                                                   filled: true,
-                                                  fillColor: const Color(0xFFF8F8F8),
+                                                  fillColor:
+                                                      const Color(0xFFF8F8F8),
                                                   border: OutlineInputBorder(
-                                                    borderRadius: BorderRadius.circular(12),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
                                                   ),
-                                                  focusedBorder: OutlineInputBorder(
-                                                    borderRadius: BorderRadius.circular(12),
-                                                    borderSide: const BorderSide(color: Color(0xFFF1A922), width: 2),
+                                                  focusedBorder:
+                                                      OutlineInputBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                    borderSide:
+                                                        const BorderSide(
+                                                            color: Color(
+                                                                0xFFF1A922),
+                                                            width: 2),
                                                   ),
                                                 ),
                                                 items: hallList.map((hall) {
-                                                  final code = hall['hall_code'].toString();
-                                                  final name = hall['hall_name'].toString();
-                                                  return DropdownMenuItem<String>(
+                                                  final code = hall['hall_code']
+                                                      .toString();
+                                                  final name = hall['hall_name']
+                                                      .toString();
+                                                  return DropdownMenuItem<
+                                                      String>(
                                                     value: code,
                                                     child: Text(
                                                       name,
-                                                      overflow: TextOverflow.ellipsis,
-                                                      style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1E1E1E)),
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          color: Color(
+                                                              0xFF1E1E1E)),
                                                     ),
                                                   );
                                                 }).toList(),
@@ -200,11 +232,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                                     setState(() {
                                                       selectedHallCode = value;
                                                     });
-                                                    GetStorage().write('selected_hall', value);
+                                                    GetStorage().write(
+                                                        'selected_hall', value);
                                                   }
                                                 },
                                                 validator: (value) {
-                                                  if (value == null || value.trim().isEmpty) {
+                                                  if (value == null ||
+                                                      value.trim().isEmpty) {
                                                     return 'Please select a hall';
                                                   }
                                                   return null;
@@ -216,27 +250,44 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 height: 52,
                                                 child: ElevatedButton.icon(
                                                   onPressed: () {
-                                                    final hallToUse = selectedHallCode ?? currentSelected;
-                                                    if (hallToUse != null && hallToUse.isNotEmpty) {
-                                                      GetStorage().write('selected_hall', hallToUse);
+                                                    final hallToUse =
+                                                        selectedHallCode ??
+                                                            currentSelected;
+                                                    if (hallToUse != null &&
+                                                        hallToUse.isNotEmpty) {
+                                                      GetStorage().write(
+                                                          'selected_hall',
+                                                          hallToUse);
                                                       Navigator.pop(context);
                                                       Navigator.push(
                                                         context,
                                                         MaterialPageRoute(
-                                                          builder: (context) => VCardScanner(hallToUse),
+                                                          builder: (context) =>
+                                                              VCardScanner(
+                                                                  hallToUse),
                                                         ),
                                                       );
                                                     }
                                                   },
-                                                  icon: const Icon(Icons.arrow_forward, color: Colors.white),
+                                                  icon: const Icon(
+                                                      Icons.arrow_forward,
+                                                      color: Colors.white),
                                                   label: const Text(
                                                     "Proceed to Scan",
-                                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                                                    style: TextStyle(
+                                                        fontSize: 15,
+                                                        fontWeight:
+                                                            FontWeight.bold),
                                                   ),
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor: const Color(0xFFF1A922),
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius: BorderRadius.circular(12),
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        const Color(0xFFF1A922),
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12),
                                                     ),
                                                   ),
                                                 ),
@@ -253,7 +304,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const PrinterConfigurationScreen(),
+                                  builder: (context) =>
+                                      const PrinterConfigurationScreen(),
                                 ),
                               );
                             }
