@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'widgets/scan_vCard.dart';
+import '../repositories/visitor_repository.dart';
 import 'production_logger.dart';
 
 class BackgroundDataFetcher with WidgetsBindingObserver {
@@ -23,7 +23,7 @@ class BackgroundDataFetcher with WidgetsBindingObserver {
     _isStarted = true;
     WidgetsBinding.instance.addObserver(this);
     _startTimer();
-    VCardScanner.uploadUnsyncedLeadsToSupabase();
+    VisitorRepository().triggerSync();
     _fetchAndStoreHallMaster();
   }
 
@@ -41,7 +41,7 @@ class BackgroundDataFetcher with WidgetsBindingObserver {
       if (_isInForeground) {
         _fetchAndStoreData();
         _fetchAndStoreHallMaster();
-        VCardScanner.uploadUnsyncedLeadsToSupabase();
+        VisitorRepository().triggerSync();
       }
     });
   }
@@ -90,7 +90,7 @@ class BackgroundDataFetcher with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     _isInForeground = (state == AppLifecycleState.resumed || state == AppLifecycleState.inactive);
     if (state == AppLifecycleState.resumed) {
-      VCardScanner.uploadUnsyncedLeadsToSupabase();
+      VisitorRepository().triggerSync();
       _fetchAndStoreHallMaster();
     }
   }

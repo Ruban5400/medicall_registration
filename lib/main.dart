@@ -10,6 +10,7 @@ import 'controller/api_service.dart';
 import 'controller/configuration_page_controller.dart';
 import 'controller/main_controller.dart';
 import 'firebase_options.dart';
+import 'repositories/visitor_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,6 +35,12 @@ void main() async {
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4d3R5eWRmcGJmdG5ya3FudHhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1MjY3MjIsImV4cCI6MjEwMDEwMjcyMn0.iWyUaRfG7Fz2BLIvc4DeV2ceM3eymdJUyqcQGWj4-14");
   } catch (e) {
     debugPrint('Supabase init warning: $e');
+  }
+
+  try {
+    VisitorRepository().initialize();
+  } catch (e) {
+    debugPrint('VisitorRepository init error: $e');
   }
 
   try {

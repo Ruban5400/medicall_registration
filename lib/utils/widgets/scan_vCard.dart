@@ -2,10 +2,9 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:flutter_beep_plus/flutter_beep_plus.dart';
-import 'package:intl/intl.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../models/visitor_hall_visit.dart';
+import '../../repositories/visitor_repository.dart';
 import '../app_constants.dart';
 import '../queue_statistics.dart';
 import '../production_logger.dart';
@@ -16,162 +15,17 @@ class VCardScanner extends StatefulWidget {
 
   const VCardScanner(this.hallNo, {super.key});
 
-  static bool _isSyncing = false;
-  
   /// Global sync state notifier to update the scanning UI in real-time.
-  static final ValueNotifier<SyncState> syncState = ValueNotifier<SyncState>(SyncState.idle);
-
-  /// Uploads ALL unsynced leads from GetStorage to Supabase regardless of scan date.
-  /// Uses a batching mechanism (50 leads per batch) and a static concurrency guard.
+  static ValueNotifier<SyncState> get syncState => VisitorRepository.syncState;
+  
+  /// Uploads ALL unsynced leads from local queue to Supabase.
   static Future<void> uploadUnsyncedLeadsToSupabase() async {
-    if (_isSyncing) return;
-    _isSyncing = true;
-    syncState.value = SyncState.syncing;
-    ProductionLogger.sync('Starting upload of unsynced visitor leads...');
-
-    try {
-      final box = GetStorage();
-      final List<dynamic> scannedLeadsRaw = box.read('leads') ?? [];
-      if (scannedLeadsRaw.isEmpty) {
-        syncState.value = SyncState.idle;
-        ProductionLogger.sync('No visitor records found in local queue.');
-        return;
-      }
-
-      // Optimized single-pass index extraction to avoid mapping 10k items up front
-      final unsyncedIndices = <int>[];
-      for (int i = 0; i < scannedLeadsRaw.length; i++) {
-        final lead = scannedLeadsRaw[i];
-        if (lead is Map && lead['is_synced'] != true) {
-          unsyncedIndices.add(i);
-        }
-      }
-
-      if (unsyncedIndices.isEmpty) {
-        syncState.value = SyncState.idle;
-        ProductionLogger.sync('All local visitor records are already synchronized.');
-        return;
-      }
-
-      final supabase = Supabase.instance.client;
-      const int batchSize = 50;
-      ProductionLogger.sync('Found ${unsyncedIndices.length} unsynced leads. Processing in batches of $batchSize.');
-
-      for (int i = 0; i < unsyncedIndices.length; i += batchSize) {
-        final endIdx = (i + batchSize > unsyncedIndices.length)
-            ? unsyncedIndices.length
-            : i + batchSize;
-        final batchIndices = unsyncedIndices.sublist(i, endIdx);
-
-        // Optimized payload mapping from raw data source
-        final batchPayload = batchIndices.map((idx) {
-          final lead = scannedLeadsRaw[idx] as Map;
-          return {
-            'name': lead['name'] ?? '',
-            'email': lead['email'] ?? '',
-            'mobile_number': lead['mobile_number'] ?? '',
-            'hall_no': lead['hall_no'] ?? '',
-            'date': lead['date'] ?? '',
-          };
-        }).toList();
-
-        try {
-          ProductionLogger.supabase('Upserting batch payload to medicall_visitor table (size: ${batchPayload.length}).');
-          await supabase.from('medicall_visitor').upsert(
-            batchPayload,
-            onConflict: 'mobile_number,date',
-          );
-
-          // Update GetStorage immediately after this batch succeeds, pull fresh data to avoid races
-          final currentRaw = box.read('leads') ?? [];
-          final currentList =
-              currentRaw.map((e) => Map<String, dynamic>.from(e)).toList();
-
-          for (final idx in batchIndices) {
-            if (idx < currentList.length) {
-              currentList[idx]['is_synced'] = true;
-            }
-          }
-          await box.write('leads', currentList);
-          
-          // Persist the last successful sync time formatted as hh:mm a
-          final syncTime = DateFormat('hh:mm a').format(DateTime.now());
-          await box.write('last_sync_time', syncTime);
-
-          ProductionLogger.sync('Successfully synchronized batch of ${batchPayload.length} leads.');
-        } catch (e) {
-          ProductionLogger.error('Supabase batch upload network or database error', error: e);
-          syncState.value = SyncState.failed;
-          break; // Stop further batch attempts if network fails
-        }
-      }
-
-      // If we finished all batches without breaking, state is synced
-      if (syncState.value == SyncState.syncing) {
-        syncState.value = SyncState.synced;
-        // Trigger optimized queue cleanup
-        await _cleanupSyncedQueue();
-      }
-    } catch (e) {
-      ProductionLogger.error('Sync engine fatal error', error: e);
-      syncState.value = SyncState.failed;
-    } finally {
-      _isSyncing = false;
-      // Revert sync state back to idle after a 3-second display buffer
-      if (syncState.value == SyncState.synced) {
-        Future.delayed(const Duration(seconds: 3), () {
-          if (syncState.value == SyncState.synced && !_isSyncing) {
-            syncState.value = SyncState.idle;
-          }
-        });
-      }
-    }
-  }
-
-  /// Prunes successfully synced visitor records older than configured retention period (24 hours).
-  /// Designed to perform efficiently in a single pass without locking resources.
-  static Future<void> _cleanupSyncedQueue() async {
-    try {
-      final box = GetStorage();
-      final List<dynamic> currentRaw = box.read('leads') ?? [];
-      if (currentRaw.isEmpty) return;
-
-      final now = DateTime.now();
-      final retentionLimit = now.subtract(AppConstants.queueRetention);
-
-      final List<dynamic> updatedList = [];
-      bool modified = false;
-
-      for (var lead in currentRaw) {
-        if (lead is Map) {
-          if (lead['is_synced'] == true) {
-            DateTime? leadTime;
-            if (lead['scanned_at'] != null) {
-              leadTime = DateTime.tryParse(lead['scanned_at'].toString());
-            }
-            leadTime ??= DateTime.tryParse(lead['date']?.toString() ?? '');
-
-            if (leadTime != null && leadTime.isBefore(retentionLimit)) {
-              modified = true;
-              continue; // Exclude/prune from memory
-            }
-          }
-        }
-        updatedList.add(lead);
-      }
-
-      if (modified) {
-        await box.write('leads', updatedList);
-        ProductionLogger.queue('Pruned synced records older than ${AppConstants.queueRetention.inHours} hours.');
-      }
-    } catch (e) {
-      ProductionLogger.error('Queue cleanup background error', error: e);
-    }
+    await VisitorRepository().triggerSync();
   }
 
   // Alias for backward compatibility
   static Future<void> uploadTodayLeadsToSupabase() async {
-    await uploadUnsyncedLeadsToSupabase();
+    await VisitorRepository().triggerSync();
   }
 
   @override
@@ -179,7 +33,6 @@ class VCardScanner extends StatefulWidget {
 }
 
 class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver {
-  final box = GetStorage();
   bool isScanning = false;
   final _flutterBeepPlusPlugin = FlutterBeepPlus();
   late final MobileScannerController cameraController;
@@ -189,7 +42,6 @@ class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    box.writeIfNull('leads', []);
     cameraController = MobileScannerController(
       facing: CameraFacing.back,
       detectionSpeed: DetectionSpeed.noDuplicates,
@@ -197,7 +49,7 @@ class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver
     );
     _startNetworkListener();
     VCardScanner.syncState.addListener(_onSyncStateChanged);
-    VCardScanner.uploadUnsyncedLeadsToSupabase();
+    VisitorRepository().triggerSync();
   }
 
   @override
@@ -218,7 +70,7 @@ class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      VCardScanner.uploadUnsyncedLeadsToSupabase();
+      VisitorRepository().triggerSync();
     }
   }
 
@@ -231,7 +83,6 @@ class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver
 
     if (contact.isNotEmpty) {
       final now = DateTime.now();
-      final formattedDate = DateFormat('yyyy-MM-dd').format(now);
       
       // Fallback identifier hierarchy for missing mobile numbers to prevent data overwrite
       String mobile = (contact['mobile_number'] ?? '').trim();
@@ -251,40 +102,24 @@ class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver
         ProductionLogger.queue('Fallback mobile number applied: $mobile');
       }
 
-      contact['hall_no'] = widget.hallNo;
-      contact['date'] = formattedDate;
-      contact['scanned_at'] = now.toIso8601String(); // Add high-res local scan timestamp
-      contact['is_synced'] = false;
+      final visit = VisitorHallVisit(
+        id: VisitorHallVisit.generateUuid(),
+        visitorMobileNumber: mobile,
+        visitorName: contact['name'] ?? contact['full_name'] ?? '',
+        visitorEmail: contact['email'] ?? '',
+        hallNumber: widget.hallNo,
+        checkInTimestamp: now,
+        createdTimestamp: now,
+        isSynced: false,
+        retryCount: 0,
+      );
 
-      final List<dynamic> currentLeads = box.read('leads') ?? [];
-      
-      // Dynamic Deduplication: update the matching local record in-place
-      final existingIndex = currentLeads.indexWhere((lead) => 
-          lead is Map && lead['mobile_number'] == mobile && lead['date'] == formattedDate);
-
-      if (existingIndex != -1) {
-        final existingLead = Map<String, dynamic>.from(currentLeads[existingIndex]);
-        existingLead['is_synced'] = false;
-        existingLead['scanned_at'] = now.toIso8601String();
-        existingLead['name'] = contact['name'] ?? existingLead['name'] ?? '';
-        existingLead['email'] = contact['email'] ?? existingLead['email'] ?? '';
-        existingLead['hall_no'] = widget.hallNo;
-        currentLeads[existingIndex] = existingLead;
-        ProductionLogger.queue('Duplicate scan for $mobile on $formattedDate. Updated existing local record in-place.');
-      } else {
-        currentLeads.add(contact);
-        ProductionLogger.queue('Saved new scan to local queue for $mobile.');
-      }
-
-      await box.write('leads', currentLeads);
+      await VisitorRepository().saveVisit(visit);
 
       if (mounted) {
         setState(() {}); // Refresh UI
         showSnackBar('✅ Data saved');
       }
-
-      // Trigger background upload attempt immediately after scan
-      VCardScanner.uploadUnsyncedLeadsToSupabase();
 
       Future.delayed(AppConstants.scanCooldown, () {
         isScanning = false;
@@ -319,7 +154,7 @@ class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver
       }
       ProductionLogger.network('Initial connectivity check: isConnected = $connected');
       if (connected) {
-        await VCardScanner.uploadUnsyncedLeadsToSupabase();
+        await VisitorRepository().triggerSync();
       }
 
       _connectivitySubscription?.cancel();
@@ -332,7 +167,7 @@ class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver
           });
         }
         if (isNowConnected) {
-          await VCardScanner.uploadUnsyncedLeadsToSupabase();
+          await VisitorRepository().triggerSync();
         }
       });
     } catch (e) {
@@ -344,7 +179,7 @@ class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver
   @override
   Widget build(BuildContext context) {
     // Single-pass calculation of queue statistics from storage
-    final leads = box.read('leads') ?? [];
+    final leads = VisitorRepository().getRawLeads();
     final stats = QueueStatistics.calculate(leads, VCardScanner.syncState.value);
 
     return Scaffold(
