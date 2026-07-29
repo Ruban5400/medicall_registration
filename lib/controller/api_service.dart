@@ -11,13 +11,23 @@ class ApiService with ChangeNotifier {
 
   Future<void> fetchAndStoreVisitors() async {
     const url = "$_baseUrl/fetch-visitors";
-    final response = await http.get(Uri.parse(url));
+    try {
+      final response = await http
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 180));
 
-    if (response.statusCode == 200) {
-      _visitors = jsonDecode(response.body);
-      notifyListeners();
-    } else {
-      throw Exception('Failed to fetch visitors');
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) {
+          _visitors = decoded;
+          notifyListeners();
+        }
+      } else {
+        throw Exception('Failed to fetch visitors: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error fetching visitors: $e');
+      rethrow;
     }
   }
 
@@ -25,26 +35,27 @@ class ApiService with ChangeNotifier {
       Map<String, dynamic> visitorData, String mobileNumber) async {
     final url =
         Uri.parse("$_baseUrl/visitor/insert-or-update?mobile_number=$mobileNumber");
-print('Ruby--->>> $visitorData');
     try {
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(visitorData),
-      );
-print('5400 >>>> ${response.body}');
+      final response = await http
+          .post(
+            url,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(visitorData),
+          )
+          .timeout(const Duration(seconds: 15));
+
       if (response.statusCode == 200) {
-        print("✅ Data sent successfully: ${response.body}");
+        debugPrint("✅ Data sent successfully: ${response.body}");
         return true;
       } else {
-        print(
+        debugPrint(
             "❌ Failed to send data: ${response.statusCode} - ${response.body}");
         return false;
       }
     } catch (e) {
-      print("❗ Error sending data: $e");
+      debugPrint("❗ Error sending data: $e");
       return false;
     }
   }

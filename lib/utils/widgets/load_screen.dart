@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'dart:convert';
 
 import '../../controller/main_controller.dart';
+import '../production_logger.dart';
 
 
 class DataLoaderScreen extends StatefulWidget {
@@ -16,6 +17,8 @@ class DataLoaderScreen extends StatefulWidget {
 
 class _DataLoaderScreenState extends State<DataLoaderScreen> {
   final storage = GetStorage();
+  bool isLoading = false;
+  String? errorMessage;
 
   @override
   void initState() {
@@ -25,21 +28,19 @@ class _DataLoaderScreenState extends State<DataLoaderScreen> {
 
   Future<void> fetchAndStoreData() async {
     try {
-      final response = await http.get(
-        Uri.parse('https://crm.medicall.in/api/fetch-visitors'),
-      );
+      final response = await http
+          .get(Uri.parse('https://crm.medicall.in/api/fetch-visitors'))
+          .timeout(const Duration(seconds: 180));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        await storage.write('global_visitor_data', data);
-        debugPrint("✅ Data stored successfully in GetStorage");
+        ProductionLogger.sync('Global visitor data fetched: ${data != null}');
+        if (data != null) {
+          await storage.write('global_visitor_data', data);
+          ProductionLogger.sync("✅ Data stored successfully in GetStorage");
+        }
 
         if (mounted) {
-          // Navigator.pushReplacement(
-          //   context,
-          //   // MaterialPageRoute(builder: (_) => const GetItemDetails()),
-          //   MaterialPageRoute(builder: (_) => const WelcomePage()),
-          // );
           Provider.of<MainController>(context, listen: false)
               .scannBarCode(context);
         }
@@ -52,24 +53,58 @@ class _DataLoaderScreenState extends State<DataLoaderScreen> {
   }
 
   void showError(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFFFFFDF8),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            CircularProgressIndicator(color: Colors.white),
-            SizedBox(height: 20),
-            Text(
-              "Please wait\nFetching global visitor data...",textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white, fontSize: 16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-          ],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: CircularProgressIndicator(
+                      color: Color(0xFFF1A922),
+                      strokeWidth: 3.5,
+                    ),
+                  ),
+                  SizedBox(height: 24),
+                  Text(
+                    "Preparing Visitor Database",
+                    style: TextStyle(
+                      color: Color(0xFF1E1E1E),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    "Please wait...",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFF666666),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

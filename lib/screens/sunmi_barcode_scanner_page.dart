@@ -1,3 +1,9 @@
+// ------------------------------------------------------------------
+// Legacy Sunmi Test Page / Barcode Scanner Test
+// Currently not used in Visitor Registration workflow.
+// Retained for future Sunmi device testing & features.
+// ------------------------------------------------------------------
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -52,16 +58,7 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> {
   Future<void> scanBarcode() async {
     try {
       final barcode = '5400';
-      // await FlutterBarcodeScanner.scanBarcode(
-      //   '#ff6666',
-      //   'Cancel',
-      //   true,
-      //   ScanMode.DEFAULT,
-      // );
-
-
-
-        this.barcode = barcode;
+      this.barcode = barcode;
     } on PlatformException {
       barcode = 'Failed to get platform version.';
     }

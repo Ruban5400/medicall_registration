@@ -1,3 +1,9 @@
+// ------------------------------------------------------------------
+// Legacy Product Barcode Models
+// Currently not used in Visitor Registration workflow.
+// Retained for future Sunmi product/barcode functionality.
+// ------------------------------------------------------------------
+
 import 'dart:convert';
 
 class BarCodeData {

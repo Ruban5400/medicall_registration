@@ -1,6 +1,4 @@
-import 'dart:typed_data';
 import 'dart:ui' as ui;
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -15,24 +13,32 @@ class Sunmi {
   Sunmi({required this.printSelectedVisitor});
 
   Future<void> initialize() async {
-    await SunmiPrinter.bindingPrinter();
-    await SunmiPrinter.initPrinter();
-    await SunmiPrinter.setAlignment(SunmiPrintAlign.CENTER);
+    try {
+      await SunmiPrinter.bindingPrinter();
+      await SunmiPrinter.initPrinter();
+      await SunmiPrinter.setAlignment(SunmiPrintAlign.CENTER);
+    } catch (e) {
+      debugPrint('Printer initialize error: $e');
+    }
   }
 
   Future<void> closePrinter() async {
-    await SunmiPrinter.bindingPrinter();
+    try {
+      await SunmiPrinter.bindingPrinter();
+    } catch (e) {
+      debugPrint('Printer close error: $e');
+    }
   }
 
   // Main method to call
   Future<void> printReceipt(double paperWidthMm, double paperHeightMm) async {
     var company = '';
     var designation = '';
-    if (printSelectedVisitor?['company'] == '' ||
-        printSelectedVisitor?['company'] == null) {
+    if (printSelectedVisitor?['organization'] == '' ||
+        printSelectedVisitor?['organization'] == null) {
       company = '';
     } else {
-      company = '@ ${printSelectedVisitor?['company']}';
+      company = printSelectedVisitor?['organization'];
     }
     if (printSelectedVisitor?['designation'] == '' ||
         printSelectedVisitor?['designation'] == null) {
@@ -42,9 +48,8 @@ class Sunmi {
     }
     await printReceiptWithUserAndQR(
       name: printSelectedVisitor?['name'] ?? ' ',
-      // mobileNumber : printSelectedVisitor?['mobile_number'] ?? ' ',
-      // email : printSelectedVisitor?['email'] ?? ' ',
-      role: '$designation $company' ?? ' ',
+      role: designation,
+      org: company,
       paperWidthMm: paperWidthMm,
       paperHeightMm: paperHeightMm,
     );
@@ -53,33 +58,34 @@ class Sunmi {
 
   Future<void> printReceiptWithUserAndQR({
     required String name,
-    // required String mobileNumber,
-    // required String email,
     required String role,
+    required String org,
     required double paperWidthMm,
     required double paperHeightMm,
   }) async {
     await initialize();
 
-    final image = await _generateFullReceiptImage(
-      name: name,
-      // mobileNumber:mobileNumber,
-      // email:email,
-      role: role,
-      paperWidthMm: paperWidthMm,
-      paperHeightMm: paperHeightMm,
-    );
+    try {
+      final image = await _generateFullReceiptImage(
+        name: name,
+        role: role,
+        org: org,
+        paperWidthMm: paperWidthMm,
+        paperHeightMm: paperHeightMm,
+      );
 
-    await SunmiPrinter.setAlignment(SunmiPrintAlign.LEFT);
-    await SunmiPrinter.printImage(image);
-    await SunmiPrinter.lineWrap(1);
+      await SunmiPrinter.setAlignment(SunmiPrintAlign.LEFT);
+      await SunmiPrinter.printImage(image);
+      await SunmiPrinter.lineWrap(1);
+    } catch (e) {
+      debugPrint('Print receipt error: $e');
+    }
   }
 
   Future<Uint8List> _generateFullReceiptImage({
     required String name,
-    // required String mobileNumber,
-    // required String email,
     required String role,
+    required String org,
     required double paperWidthMm,
     required double paperHeightMm,
   }) async {
@@ -122,7 +128,8 @@ class Sunmi {
     final vCard = generateVCard(
       name: name,
       email: printSelectedVisitor?['email'],
-      organization: role,
+      organization: org,
+      designation: role,
       mobile_number: printSelectedVisitor?['mobile_number'],
     );
     // Draw QR code

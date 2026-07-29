@@ -1,17 +1,31 @@
-// lib/utils/vcard_util.dart
-
 String generateVCard({
   required String name,
-  required String email,
-  required String organization,
-  required String mobile_number,
+  String? email,
+  String? organization,
+  String? designation,
+  String? mobile_number,
 }) {
-  return "BEGIN:VCARD\n" +
-      "VERSION:3.0\n" +
-      "N:$name\n" +
-      "FN:$name\n" +
-      "EMAIL:$email\n" +
-      "ORG:$organization\n" +
-      "TEL;TYPE=CELL:$mobile_number\n" +
-      "END:VCARD";
+  final parts = name.trim().split(RegExp(r'\s+'));
+
+  String family = '';
+  String given = '';
+
+  if (parts.length == 1) {
+    given = parts.first;
+  } else {
+    family = parts.removeLast();
+    given = parts.join(' ');
+  }
+
+  return '''
+BEGIN:VCARD
+VERSION:3.0
+FN:$name
+N:$family;$given;;;
+${designation?.isNotEmpty == true ? 'TITLE:$designation' : ''}
+${organization?.isNotEmpty == true ? 'ORG:$organization' : ''}
+${mobile_number?.isNotEmpty == true ? 'TEL;TYPE=CELL:$mobile_number' : ''}
+${email?.isNotEmpty == true ? 'EMAIL:$email' : ''}
+END:VCARD
+''';
 }
