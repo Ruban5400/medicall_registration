@@ -543,24 +543,25 @@ class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver
   }
 
   String _parseNField(String nValue) {
+    if (!nValue.contains(';')) {
+      return nValue.trim();
+    }
+
     final parts = nValue.split(';');
-    final familyName = parts.isNotEmpty ? parts[0].trim() : '';
-    final givenName = parts.length > 1 ? parts[1].trim() : '';
-    final middleName = parts.length > 2 ? parts[2].trim() : '';
+
+    final family = parts.isNotEmpty ? parts[0].trim() : '';
+    final given = parts.length > 1 ? parts[1].trim() : '';
+    final middle = parts.length > 2 ? parts[2].trim() : '';
     final prefix = parts.length > 3 ? parts[3].trim() : '';
     final suffix = parts.length > 4 ? parts[4].trim() : '';
 
-    final nameParts = <String>[];
-    if (prefix.isNotEmpty) nameParts.add(prefix);
-    if (givenName.isNotEmpty) nameParts.add(givenName);
-    if (middleName.isNotEmpty) nameParts.add(middleName);
-    if (familyName.isNotEmpty) nameParts.add(familyName);
-    if (suffix.isNotEmpty) nameParts.add(suffix);
-
-    if (nameParts.isEmpty) {
-      return nValue.replaceAll(';', ' ').trim();
-    }
-    return nameParts.join(' ').trim();
+    return [
+      prefix,
+      given,
+      middle,
+      family,
+      suffix,
+    ].where((e) => e.isNotEmpty).join(' ');
   }
 
   Map<String, String> parseCustomVCard(String vCard) {
@@ -581,8 +582,11 @@ class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver
 
       if (matchesKey('FN')) {
         data['full_name'] = valuePart;
+        data['name'] ??= valuePart;
       } else if (matchesKey('N')) {
-        data['name'] = _parseNField(valuePart);
+        final parsed = _parseNField(valuePart);
+        data['name'] = parsed;
+        data['full_name'] ??= parsed;
       } else if (matchesKey('EMAIL')) {
         data['email'] = valuePart;
       } else if (matchesKey('ORG')) {

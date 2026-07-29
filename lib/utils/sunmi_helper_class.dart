@@ -34,11 +34,11 @@ class Sunmi {
   Future<void> printReceipt(double paperWidthMm, double paperHeightMm) async {
     var company = '';
     var designation = '';
-    if (printSelectedVisitor?['company'] == '' ||
-        printSelectedVisitor?['company'] == null) {
+    if (printSelectedVisitor?['organization'] == '' ||
+        printSelectedVisitor?['organization'] == null) {
       company = '';
     } else {
-      company = '@ ${printSelectedVisitor?['company']}';
+      company = printSelectedVisitor?['organization'];
     }
     if (printSelectedVisitor?['designation'] == '' ||
         printSelectedVisitor?['designation'] == null) {
@@ -48,7 +48,8 @@ class Sunmi {
     }
     await printReceiptWithUserAndQR(
       name: printSelectedVisitor?['name'] ?? ' ',
-      role: '$designation $company',
+      role: designation,
+      org: company,
       paperWidthMm: paperWidthMm,
       paperHeightMm: paperHeightMm,
     );
@@ -58,6 +59,7 @@ class Sunmi {
   Future<void> printReceiptWithUserAndQR({
     required String name,
     required String role,
+    required String org,
     required double paperWidthMm,
     required double paperHeightMm,
   }) async {
@@ -67,6 +69,7 @@ class Sunmi {
       final image = await _generateFullReceiptImage(
         name: name,
         role: role,
+        org: org,
         paperWidthMm: paperWidthMm,
         paperHeightMm: paperHeightMm,
       );
@@ -82,6 +85,7 @@ class Sunmi {
   Future<Uint8List> _generateFullReceiptImage({
     required String name,
     required String role,
+    required String org,
     required double paperWidthMm,
     required double paperHeightMm,
   }) async {
@@ -124,7 +128,8 @@ class Sunmi {
     final vCard = generateVCard(
       name: name,
       email: printSelectedVisitor?['email'],
-      organization: role,
+      organization: org,
+      designation: role,
       mobile_number: printSelectedVisitor?['mobile_number'],
     );
     // Draw QR code
