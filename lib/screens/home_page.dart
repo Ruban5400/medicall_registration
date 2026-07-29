@@ -255,6 +255,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                             currentSelected;
                                                     if (hallToUse != null &&
                                                         hallToUse.isNotEmpty) {
+                                                      if (VCardScanner.isScannerOpen) return;
                                                       GetStorage().write(
                                                           'selected_hall',
                                                           hallToUse);

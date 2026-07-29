@@ -103,33 +103,73 @@ class MainController extends ChangeNotifier {
     );
   }
 
+  String _normalizeMobile(String mobile) {
+    String cleaned = mobile.replaceAll(RegExp(r'[\s\-()]+'), '');
+    if (cleaned.startsWith('+91') && cleaned.length == 13) {
+      cleaned = cleaned.substring(3);
+    } else if (cleaned.startsWith('91') && cleaned.length == 12) {
+      cleaned = cleaned.substring(2);
+    } else if (cleaned.startsWith('+')) {
+      cleaned = cleaned.replaceAll('+', '');
+    }
+    
+    String digitsOnly = cleaned.replaceAll(RegExp(r'[^\d]'), '');
+    if (digitsOnly.length > 10 && digitsOnly.startsWith('91')) {
+      digitsOnly = digitsOnly.substring(digitsOnly.length - 10);
+    }
+    if (digitsOnly.isNotEmpty) {
+      return digitsOnly;
+    }
+    return cleaned;
+  }
+
   String _extractMobileFromVCard(String raw) {
-    if (!raw.startsWith('BEGIN:VCARD')) {
-      return raw.trim();
-    }
-    final lines = raw.split('\n');
-    for (final line in lines) {
-      final trimmed = line.trim();
-      if (trimmed.startsWith('TEL;TYPE=CELL:')) {
-        return trimmed.replaceFirst('TEL;TYPE=CELL:', '').trim();
-      } else if (trimmed.startsWith('TEL:')) {
-        return trimmed.replaceFirst('TEL:', '').trim();
-      } else if (trimmed.startsWith('TEL;CELL:')) {
-        return trimmed.replaceFirst('TEL;CELL:', '').trim();
+    String value = raw.trim();
+    if (value.startsWith('BEGIN:VCARD')) {
+      final lines = value.split('\n');
+      String? foundPhone;
+      for (final line in lines) {
+        final trimmed = line.trim();
+        if (trimmed.startsWith('TEL;TYPE=CELL:')) {
+          foundPhone = trimmed.replaceFirst('TEL;TYPE=CELL:', '').trim();
+          break;
+        } else if (trimmed.startsWith('TEL:')) {
+          foundPhone = trimmed.replaceFirst('TEL:', '').trim();
+          break;
+        } else if (trimmed.startsWith('TEL;CELL:')) {
+          foundPhone = trimmed.replaceFirst('TEL;CELL:', '').trim();
+          break;
+        }
+      }
+      if (foundPhone == null) {
+        for (final line in lines) {
+          final trimmed = line.trim();
+          if (trimmed.startsWith('REG_ID:')) {
+            foundPhone = trimmed.replaceFirst('REG_ID:', '').trim();
+            break;
+          }
+        }
+      }
+      if (foundPhone != null) {
+        value = foundPhone;
+      }
+    } else {
+      if (value.startsWith('TEL;TYPE=CELL:')) {
+        value = value.replaceFirst('TEL;TYPE=CELL:', '').trim();
+      } else if (value.startsWith('TEL:')) {
+        value = value.replaceFirst('TEL:', '').trim();
+      } else if (value.startsWith('TEL;CELL:')) {
+        value = value.replaceFirst('TEL;CELL:', '').trim();
       }
     }
-    for (final line in lines) {
-      final trimmed = line.trim();
-      if (trimmed.startsWith('REG_ID:')) {
-        return trimmed.replaceFirst('REG_ID:', '').trim();
-      }
-    }
-    return raw.trim();
+    return _normalizeMobile(value);
   }
 
   scannBarCode(
     BuildContext context,
   ) async {
+    if (QRScannerPage.isScannerOpen) return;
+    QRScannerPage.isScannerOpen = true;
     try {
       await Navigator.push(
           context,

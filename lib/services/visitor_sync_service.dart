@@ -28,7 +28,7 @@ class VisitorSyncService {
         ProductionLogger.supabase(
             'Syncing batch payload of size ${batch.length} to Supabase medicall_visitor table.');
         
-        await _supabase.from('medicall_visitor').insert(batchPayload);
+        await _supabase.from('medicall_visitor').upsert(batchPayload, onConflict: 'mobile_number,date');
 
         final now = DateTime.now();
         for (var visit in batch) {
@@ -50,7 +50,7 @@ class VisitorSyncService {
           try {
             await _supabase
                 .from('medicall_visitor')
-                .insert(visit.toSupabasePayload());
+                .upsert(visit.toSupabasePayload(), onConflict: 'mobile_number,date');
 
             final now = DateTime.now();
             updatedVisits.add(visit.copyWith(

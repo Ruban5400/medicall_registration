@@ -62,8 +62,8 @@ class VisitorRepository {
       // and reset sync status to unsynced so the updated data is pushed.
       visits[existingIndex] = visit.copyWith(
         id: existing.id,
-        isSynced: existing.isSynced,
-        syncedAt: existing.syncedAt,
+        isSynced: false,
+        syncedAt: null,
         retryCount: existing.retryCount,
         syncError: existing.syncError,
       );

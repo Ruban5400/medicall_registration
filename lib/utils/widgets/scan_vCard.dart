@@ -15,6 +15,10 @@ class VCardScanner extends StatefulWidget {
 
   const VCardScanner(this.hallNo, {super.key});
 
+  static bool _scannerOpen = false;
+  static bool get isScannerOpen => _scannerOpen;
+  static set isScannerOpen(bool val) => _scannerOpen = val;
+
   /// Global sync state notifier to update the scanning UI in real-time.
   static ValueNotifier<SyncState> get syncState => VisitorRepository.syncState;
   
@@ -42,11 +46,13 @@ class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    VCardScanner.isScannerOpen = true;
     cameraController = MobileScannerController(
       facing: CameraFacing.back,
       detectionSpeed: DetectionSpeed.noDuplicates,
       detectionTimeoutMs: 500,
     );
+    ProductionLogger.scan('Camera started');
     _startNetworkListener();
     VCardScanner.syncState.addListener(_onSyncStateChanged);
     VisitorRepository().triggerSync();
@@ -55,9 +61,13 @@ class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    VCardScanner.isScannerOpen = false;
     VCardScanner.syncState.removeListener(_onSyncStateChanged);
     _connectivitySubscription?.cancel();
+    ProductionLogger.scan('Camera stopped');
+    cameraController.stop();
     cameraController.dispose();
+    ProductionLogger.scan('Camera disposed');
     super.dispose();
   }
 
@@ -70,7 +80,12 @@ class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      ProductionLogger.log('CAMERA', 'Lifecycle resumed: starting camera');
+      cameraController.start();
       VisitorRepository().triggerSync();
+    } else if (state == AppLifecycleState.paused) {
+      ProductionLogger.log('CAMERA', 'Lifecycle paused: stopping camera');
+      cameraController.stop();
     }
   }
 
@@ -79,7 +94,7 @@ class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver
     isScanning = true;
     ProductionLogger.scan('Visitor vCard QR scan detected.');
 
-    final contact = Map<String, dynamic>.from(parseCustomVCard(rawValue));
+    final contact = Map<String, dynamic>.from(parseContactOrMobile(rawValue));
 
     if (contact.isNotEmpty) {
       final now = DateTime.now();
@@ -102,10 +117,34 @@ class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver
         ProductionLogger.queue('Fallback mobile number applied: $mobile');
       }
 
+      // Priority Rule: FN -> N -> ORG -> Email username -> Mobile -> "Scanned Visitor"
+      final String? fn = contact['full_name']?.trim();
+      final String? nName = contact['name']?.trim();
+      final String? org = contact['organization']?.trim();
+      final String? email = contact['email']?.trim();
+      final String? mob = contact['mobile_number']?.trim();
+
+      String emailUsername = '';
+      if (email != null && email.contains('@')) {
+        emailUsername = email.split('@').first.trim();
+      }
+
+      final String visitorName = (fn != null && fn.isNotEmpty)
+          ? fn
+          : ((nName != null && nName.isNotEmpty)
+              ? nName
+              : ((org != null && org.isNotEmpty)
+                  ? org
+                  : (emailUsername.isNotEmpty
+                      ? emailUsername
+                      : ((mob != null && mob.isNotEmpty)
+                          ? mob
+                          : 'Scanned Visitor'))));
+
       final visit = VisitorHallVisit(
         id: VisitorHallVisit.generateUuid(),
         visitorMobileNumber: mobile,
-        visitorName: contact['name'] ?? contact['full_name'] ?? '',
+        visitorName: visitorName,
         visitorEmail: contact['email'] ?? '',
         hallNumber: widget.hallNo,
         checkInTimestamp: now,
@@ -198,22 +237,30 @@ class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Stack(
-        children: [
-          MobileScanner(
-            controller: cameraController,
-            onDetect: (barcodeCapture) {
-              final barcode = barcodeCapture.barcodes.first;
-              final raw = barcode.rawValue;
-              _flutterBeepPlusPlugin
-                  .playSysSound(AndroidSoundID.TONE_CDMA_ABBR_ALERT);
-              if (barcode.format == BarcodeFormat.qrCode &&
-                  raw != null &&
-                  raw.startsWith("BEGIN:VCARD")) {
-                handleScan(raw);
-              }
-            },
-          ),
+      body: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop) return;
+          ProductionLogger.scan('Camera stopped');
+          await cameraController.stop();
+          if (mounted) {
+            Navigator.pop(context);
+          }
+        },
+        child: Stack(
+          children: [
+            MobileScanner(
+              controller: cameraController,
+              onDetect: (barcodeCapture) {
+                final barcode = barcodeCapture.barcodes.first;
+                final raw = barcode.rawValue;
+                _flutterBeepPlusPlugin
+                    .playSysSound(AndroidSoundID.TONE_CDMA_ABBR_ALERT);
+                if (barcode.format == BarcodeFormat.qrCode && raw != null) {
+                  handleScan(raw);
+                }
+              },
+            ),
 
           // Double-layered top dashboard panel (Hall, Network, Live Sync Status, Queue Statistics)
           Positioned(
@@ -331,6 +378,7 @@ class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver
           ),
         ],
       ),
+     ),
     );
   }
 
@@ -459,27 +507,94 @@ class _VCardScannerState extends State<VCardScanner> with WidgetsBindingObserver
   }
 
 
+  String _extractMobileFromRaw(String raw) {
+    String value = raw.trim();
+    if (value.startsWith('TEL;TYPE=CELL:')) {
+      value = value.replaceFirst('TEL;TYPE=CELL:', '').trim();
+    } else if (value.startsWith('TEL:')) {
+      value = value.replaceFirst('TEL:', '').trim();
+    } else if (value.startsWith('TEL;CELL:')) {
+      value = value.replaceFirst('TEL;CELL:', '').trim();
+    }
+    
+    String digitsOnly = value.replaceAll(RegExp(r'[^\d]'), '');
+    if (digitsOnly.length > 10 && digitsOnly.startsWith('91')) {
+      digitsOnly = digitsOnly.substring(digitsOnly.length - 10);
+    }
+    if (digitsOnly.isNotEmpty) {
+      return digitsOnly;
+    }
+    return value;
+  }
+
+  Map<String, String> parseContactOrMobile(String rawValue) {
+    if (rawValue.trim().startsWith('BEGIN:VCARD')) {
+      return parseCustomVCard(rawValue);
+    }
+    final mobile = _extractMobileFromRaw(rawValue);
+    if (mobile.isNotEmpty) {
+      return {
+        'mobile_number': mobile,
+        'name': '',
+        'email': '',
+      };
+    }
+    return {};
+  }
+
+  String _parseNField(String nValue) {
+    final parts = nValue.split(';');
+    final familyName = parts.isNotEmpty ? parts[0].trim() : '';
+    final givenName = parts.length > 1 ? parts[1].trim() : '';
+    final middleName = parts.length > 2 ? parts[2].trim() : '';
+    final prefix = parts.length > 3 ? parts[3].trim() : '';
+    final suffix = parts.length > 4 ? parts[4].trim() : '';
+
+    final nameParts = <String>[];
+    if (prefix.isNotEmpty) nameParts.add(prefix);
+    if (givenName.isNotEmpty) nameParts.add(givenName);
+    if (middleName.isNotEmpty) nameParts.add(middleName);
+    if (familyName.isNotEmpty) nameParts.add(familyName);
+    if (suffix.isNotEmpty) nameParts.add(suffix);
+
+    if (nameParts.isEmpty) {
+      return nValue.replaceAll(';', ' ').trim();
+    }
+    return nameParts.join(' ').trim();
+  }
+
   Map<String, String> parseCustomVCard(String vCard) {
     final lines = vCard.split('\n');
     final data = <String, String>{};
 
     for (final line in lines) {
-      if (line.startsWith('N:')) {
-        data['name'] = line.replaceFirst('N:', '').trim();
-      } else if (line.startsWith('FN:')) {
-        data['full_name'] = line.replaceFirst('FN:', '').trim();
-      } else if (line.startsWith('EMAIL:')) {
-        data['email'] = line.replaceFirst('EMAIL:', '').trim();
-      } else if (line.startsWith('ORG:')) {
-        data['organization'] = line.replaceFirst('ORG:', '').trim();
-      } else if (line.startsWith('TITLE:')) {
-        data['designation'] = line.replaceFirst('TITLE:', '').trim();
-      } else if (line.startsWith('TEL;TYPE=CELL:')) {
-        data['mobile_number'] = line.replaceFirst('TEL;TYPE=CELL:', '').trim();
-      } else if (line.startsWith('ADR:')) {
-        data['address'] = line.replaceFirst('ADR:', '').trim();
-      } else if (line.startsWith('REG_ID:')) {
-        data['reg_id'] = line.replaceFirst('REG_ID:', '').trim();
+      final trimmedLine = line.trim();
+      final colonIndex = trimmedLine.indexOf(':');
+      if (colonIndex == -1) continue;
+
+      final keyPart = trimmedLine.substring(0, colonIndex).trim().toUpperCase();
+      final valuePart = trimmedLine.substring(colonIndex + 1).trim();
+
+      bool matchesKey(String property) {
+        return keyPart == property || keyPart.startsWith('$property;');
+      }
+
+      if (matchesKey('FN')) {
+        data['full_name'] = valuePart;
+      } else if (matchesKey('N')) {
+        data['name'] = _parseNField(valuePart);
+      } else if (matchesKey('EMAIL')) {
+        data['email'] = valuePart;
+      } else if (matchesKey('ORG')) {
+        data['organization'] = valuePart;
+      } else if (matchesKey('TITLE')) {
+        data['designation'] = valuePart;
+      } else if (matchesKey('TEL')) {
+        data['mobile_number'] = _extractMobileFromRaw(valuePart);
+      } else if (matchesKey('ADR')) {
+        data['address'] = valuePart;
+      } else if (matchesKey('REG_ID')) {
+        data['reg_id'] = valuePart;
       }
     }
 

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'dart:convert';
 
 import '../../controller/main_controller.dart';
+import '../production_logger.dart';
 
 
 class DataLoaderScreen extends StatefulWidget {
@@ -16,6 +17,8 @@ class DataLoaderScreen extends StatefulWidget {
 
 class _DataLoaderScreenState extends State<DataLoaderScreen> {
   final storage = GetStorage();
+  bool isLoading = false;
+  String? errorMessage;
 
   @override
   void initState() {
@@ -31,10 +34,10 @@ class _DataLoaderScreenState extends State<DataLoaderScreen> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('5400-=-=-=->>123  $data');
+        ProductionLogger.sync('Global visitor data fetched: ${data != null}');
         if (data != null) {
           await storage.write('global_visitor_data', data);
-          debugPrint("✅ Data stored successfully in GetStorage");
+          ProductionLogger.sync("✅ Data stored successfully in GetStorage");
         }
 
         if (mounted) {

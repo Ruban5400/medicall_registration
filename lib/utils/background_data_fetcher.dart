@@ -54,7 +54,7 @@ class BackgroundDataFetcher with WidgetsBindingObserver {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        print('5400-=-=-=->>456  $data');
+        ProductionLogger.sync('Visitor data fetched in background successfully.');
         if (data != null) {
           await storage.write('global_visitor_data', data);
           ProductionLogger.sync('Visitor data updated in background.');
